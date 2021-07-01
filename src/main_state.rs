@@ -52,6 +52,7 @@ impl State {
             bind_group_layouts: &[],
             push_constant_ranges: &[]
         });
+
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
             label: Some("Render Pipeline"),
             layout: Some(&render_pipeline_layout),
@@ -99,15 +100,49 @@ impl State {
         }
     }
 
-    pub fn update() {}
+    pub fn update(&self) {}
 
-    pub fn render() -> Result<(), wgpu::SwapChainError> {
+    pub fn render(&self) -> Result<(), wgpu::SwapChainError> {
+        let frame = self.swap_chain.get_current_frame().unwrap().output.view;
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{
+            label: Some("Command Encoder")
+        });
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
+            label: Some("Render Pass"),
+            color_attachments: &[wgpu::RenderPassColorAttachment{
+                view: &frame,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0
+                    }),
+                    store: true
+                }
+            }],
+            depth_stencil_attachment: None
+        });
+
+        render_pass.set_pipeline(&self.render_pipeline);
+        render_pass.draw_indexed()
+
+        drop(render_pass);
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
         Ok(())
     }
 
-    pub fn input() -> bool {
+    pub fn input(&self) -> bool {
         false
     }
 
-    pub fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {}
+    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        self.size = new_size;
+        self.sc_desc.width = new_size.width;
+        self.sc_desc.height = new_size.height;
+        self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
+    }
 }
