@@ -1,11 +1,12 @@
 use winit::{
-    dpi,
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
+use futures::executor::block_on;
 
 mod main_state;
+mod vertex_index;
 
 use main_state::State;
 
@@ -13,7 +14,7 @@ fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
-    let state = State::new();
+    let mut state = block_on(State::new(&window));
 
     window.set_title("wgpu graphics");
 
@@ -30,12 +31,13 @@ fn main() {
                         },
                     ..
                 } => *control_flow = ControlFlow::Exit,
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::Resized(new_size) => {
                     state.resize(new_size);
-                }
+                },
                 WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                     state.resize(*new_inner_size);
-                }
+                },
                 _ => (),
             },
             Event::MainEventsCleared => {
