@@ -7,9 +7,11 @@ use winit::{
 
 mod camera;
 mod main_state;
+mod model;
+mod texture;
 mod uniform_matrix;
 mod vertex_index;
-mod texture;
+mod instance;
 
 use main_state::State;
 
