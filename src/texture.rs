@@ -66,7 +66,7 @@ impl Texture {
         img: &image::DynamicImage,
         label: Option<&str>,
     ) -> Result<Self> {
-        let rgba = img.to_rgba8().unwrap();
+        let rgba = img.to_rgba8();
         let dimensions = img.dimensions();
 
         let size = wgpu::Extent3d {
@@ -90,7 +90,7 @@ impl Texture {
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
-            rgba,
+            &rgba,
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: NonZeroU32::new(4 * dimensions.0),
@@ -101,9 +101,9 @@ impl Texture {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::Repeat,
-            address_mode_v: wgpu::AddressMode::Repeat,
-            address_mode_w: wgpu::AddressMode::Repeat,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Nearest,

@@ -1,10 +1,8 @@
-use crate::{
-    camera::{Camera, CameraController},
-    vertex_index::{Vertex, VertexLayout},
-};
+use crate::{camera::{Camera, CameraController}, vertex_index::{Vertex, VertexLayout}, texture};
 use nalgebra::Point3;
 use wgpu::util::DeviceExt;
 use crate::uniform_matrix::MatrixUniform;
+use crate::texture::Texture;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -16,34 +14,33 @@ pub struct State {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    matrix_uniform_buffer: wgpu::Buffer,
     clear: wgpu::Color,
     camera: Camera,
     camera_controller: CameraController,
-    matrix_uniform_bind_group: wgpu::BindGroup,
-    matrix_uniform: MatrixUniform
+    matrix_uniform: MatrixUniform,
+    depth_texture: Texture
 }
 
 const VERTICES: &[Vertex] = &[
     Vertex {
         //br
         position: [1.0, -1.0, -1.0],
-        color: [1.0, 0.0, 0.0],
+        color: [0.5, 0.0, 0.0],
     },
     Vertex {
         //tl
         position: [-1.0, 1.0, -1.0],
-        color: [0.0, 1.0, 0.0],
+        color: [0.0, 0.5, 0.0],
     },
     Vertex {
         //bl
         position: [-1.0, -1.0, -1.0],
-        color: [0.0, 0.0, 1.0],
+        color: [0.0, 0.0, 0.5],
     },
     Vertex {
         //tr
         position: [1.0, 1.0, -1.0],
-        color: [1.0, 0.0, 0.0],
+        color: [0.5, 0.0, 0.0],
     },
     Vertex {
         //br    4
@@ -53,17 +50,17 @@ const VERTICES: &[Vertex] = &[
     Vertex {
         //tr
         position: [1.0, 1.0, -3.0],
-        color: [0.0, 0.0, 1.0],
+        color: [0.0, 0.0, 0.5],
     },
     Vertex {
         //bl
         position: [-1.0, -1.0, -3.0],
-        color: [1.0, 0.0, 0.0],
+        color: [0.5, 0.0, 0.0],
     },
     Vertex {
         //tl
         position: [-1.0, 1.0, -3.0],
-        color: [0.0, 1.0, 0.0],
+        color: [0.0, 0.5, 0.0],
     },
 ];
 
@@ -118,46 +115,18 @@ impl State {
             45.,
         );
         let camera_controller = CameraController::new();
-        let mut matrix_uniform = MatrixUniform::new();
-        matrix_uniform.update_uniform(&mut camera);
 
-        let matrix_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(&[matrix_uniform]),
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        });
-        let uniform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
-            label: Some("uniform_bind_group_layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry{
-                    binding: 0,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None
-                }
-            ]
-        });
-        let matrix_uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
-            label: Some("uniform_bind_group"),
-            layout: &uniform_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry{
-                    binding: 0,
-                    resource: matrix_uniform_buffer.as_entire_binding()
-                }
-            ]
-        });
+        let mut matrix_uniform = MatrixUniform::new(&device, &camera);
+        matrix_uniform.update_uniform(&mut camera);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&uniform_bind_group_layout],
+                bind_group_layouts: &[&matrix_uniform.bind_group_layout],
                 push_constant_ranges: &[],
             });
+
+        let depth_texture = texture::Texture::create_depth_texture(&device, &sc_desc, "depth_texture");
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
@@ -176,7 +145,13 @@ impl State {
                 polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState{
+                format: texture::Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default()
+            }),
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
@@ -224,19 +199,18 @@ impl State {
             render_pipeline,
             vertex_buffer,
             index_buffer,
-            matrix_uniform_buffer,
             clear,
             camera,
             camera_controller,
-            matrix_uniform_bind_group,
-            matrix_uniform
+            matrix_uniform,
+            depth_texture
         }
     }
 
     pub fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
         self.matrix_uniform.update_uniform(&mut self.camera);
-        self.queue.write_buffer(&self.matrix_uniform_buffer, 0, bytemuck::cast_slice(&[self.matrix_uniform]));
+        self.queue.write_buffer(&self.matrix_uniform.buffer, 0, bytemuck::cast_slice(&[self.matrix_uniform.proj_view_model_matrix]));
     }
 
     pub fn render(&self) -> Result<(), wgpu::SwapChainError> {
@@ -256,13 +230,21 @@ impl State {
                     store: true,
                 },
             }],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment{
+                view: &self.depth_texture.view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: true,
+                }),
+                stencil_ops: None
+            }),
         });
 
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &self.matrix_uniform_bind_group, &[]);
+        render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
 
         drop(render_pass);
@@ -277,6 +259,7 @@ impl State {
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        self.depth_texture = texture::Texture::create_depth_texture(&self.device, &self.sc_desc, "depth_texture");
         self.size = new_size;
         self.sc_desc.width = new_size.width;
         self.sc_desc.height = new_size.height;
