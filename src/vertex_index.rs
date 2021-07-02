@@ -5,26 +5,26 @@ pub trait VertexLayout {
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     pub position: [f32; 3],
-    pub color: [f32; 3]
+    pub color: [f32; 3],
 }
 
 impl VertexLayout for Vertex {
     fn init_buffer_layout<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout{
+        wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::InputStepMode::Vertex,
             attributes: &[
-                wgpu::VertexAttribute{
+                wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: 0,
-                    shader_location: 0
+                    shader_location: 0,
                 },
-                wgpu::VertexAttribute{
+                wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x3,
-                    offset: std::mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
-                    shader_location: 1
-                }
-            ]
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                },
+            ],
         }
     }
 }

@@ -1,12 +1,15 @@
+use futures::executor::block_on;
 use winit::{
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{DeviceEvent, ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
-use futures::executor::block_on;
 
+mod camera;
 mod main_state;
+mod uniform_matrix;
 mod vertex_index;
+mod texture;
 
 use main_state::State;
 
@@ -21,6 +24,9 @@ fn main() {
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         match event {
+            Event::DeviceEvent { event, .. } => {
+                state.input(&event);
+            }
             Event::WindowEvent { window_id, event } if window_id == window.id() => match event {
                 WindowEvent::KeyboardInput {
                     input:
@@ -34,10 +40,10 @@ fn main() {
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::Resized(new_size) => {
                     state.resize(new_size);
-                },
+                }
                 WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                     state.resize(*new_inner_size);
-                },
+                }
                 _ => (),
             },
             Event::MainEventsCleared => {
