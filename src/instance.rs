@@ -1,5 +1,5 @@
 use wgpu::util::DeviceExt;
-use nalgebra::{Vector3, Rotation3};
+use nalgebra::{Vector3, Rotation3, Translation3};
 use crate::model::Model;
 
 #[repr(C)]
@@ -47,15 +47,20 @@ pub struct Instance {
 
 impl Instance {
 
-    fn new(position: Vector3<f32>, rotation: Rotation3<f32>, device: &wgpu::Device) -> Self {
+    fn new(model: Model, position: Vector3<f32>, rotation: Rotation3<f32>, device: &wgpu::Device) -> Self {
         Self {
+            model,
             position,
             rotation,
         }
     }
 
     fn to_raw(&self) -> InstanceRaw {
-
+        InstanceRaw{
+            matrix: (Translation3::from(self.position).to_homogeneous()
+            * self.rotation.matrix().to_homogeneous())
+            .into()
+        }
     }
 }
 
