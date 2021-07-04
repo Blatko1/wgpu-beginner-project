@@ -7,8 +7,8 @@ use crate::{
     texture,
     vertex_index::{Vertex, VertexLayout},
 };
+use bytemuck::bytes_of;
 use nalgebra::{Point3, Rotation3, Vector3};
-use wgpu::util::DeviceExt;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -24,47 +24,48 @@ pub struct State {
     camera_controller: CameraController,
     matrix_uniform: MatrixUniform,
     depth_texture: Texture,
+    rotation: f32,
 }
 
 const VERTICES: &[Vertex] = &[
     Vertex {
         //br
+        position: [1.0, -1.0, 1.0],
+        color: [0.5, 0.0, 0.0],
+    },
+    Vertex {
+        //tl
+        position: [-1.0, 1.0, 1.0],
+        color: [0.0, 0.5, 0.0],
+    },
+    Vertex {
+        //bl
+        position: [-1.0, -1.0, 1.0],
+        color: [0.0, 0.0, 0.5],
+    },
+    Vertex {
+        //tr
+        position: [1.0, 1.0, 1.0],
+        color: [0.5, 0.0, 0.0],
+    },
+    Vertex {
+        //br    4
         position: [1.0, -1.0, -1.0],
+        color: [0.0, 1.0, 0.0],
+    },
+    Vertex {
+        //tr
+        position: [1.0, 1.0, -1.0],
+        color: [0.0, 0.0, 0.5],
+    },
+    Vertex {
+        //bl
+        position: [-1.0, -1.0, -1.0],
         color: [0.5, 0.0, 0.0],
     },
     Vertex {
         //tl
         position: [-1.0, 1.0, -1.0],
-        color: [0.0, 0.5, 0.0],
-    },
-    Vertex {
-        //bl
-        position: [-1.0, -1.0, -1.0],
-        color: [0.0, 0.0, 0.5],
-    },
-    Vertex {
-        //tr
-        position: [1.0, 1.0, -1.0],
-        color: [0.5, 0.0, 0.0],
-    },
-    Vertex {
-        //br    4
-        position: [1.0, -1.0, -3.0],
-        color: [0.0, 1.0, 0.0],
-    },
-    Vertex {
-        //tr
-        position: [1.0, 1.0, -3.0],
-        color: [0.0, 0.0, 0.5],
-    },
-    Vertex {
-        //bl
-        position: [-1.0, -1.0, -3.0],
-        color: [0.5, 0.0, 0.0],
-    },
-    Vertex {
-        //tl
-        position: [-1.0, 1.0, -3.0],
         color: [0.0, 0.5, 0.0],
     },
 ];
@@ -189,17 +190,29 @@ impl State {
         let model = Model { mesh };
         let instances = vec![
             Instance::new(
+                Vector3::new(0., 0., 0.),
+                Vector3::new(0., 0., 1.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
                 Vector3::new(0., 0., 3.),
-                Rotation3::new(Vector3::new(0., 0., 0.)),
+                Vector3::new(0., 0., 1.),
+                Vector3::new(0., 0., 0.),
             ),
             Instance::new(
                 Vector3::new(0., 0., 6.),
-                Rotation3::new(Vector3::new(0., 0., 0.)),
+                Vector3::new(0., 0., 1.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(0., 0., 9.),
+                Vector3::new(0., 0., 1.),
+                Vector3::new(0., 0., 0.),
             ),
         ];
         let instance_collection =
             InstanceCollection::new("Model Instance Buffer", model, instances, &device);
-
+        let rotation: f32 = 0.;
         State {
             surface,
             device,
@@ -214,6 +227,7 @@ impl State {
             camera_controller,
             matrix_uniform,
             depth_texture,
+            rotation,
         }
     }
 
@@ -225,6 +239,20 @@ impl State {
             0,
             bytemuck::cast_slice(&[self.matrix_uniform.proj_view_model_matrix]),
         );
+        let instance_raw_vec = self
+            .instance_collection
+            .instances
+            .iter()
+            .map(Instance::to_raw)
+            .collect::<Vec<_>>();
+        self.queue.write_buffer(
+            &self.instance_collection.buffer,
+            0,
+            bytemuck::cast_slice(&instance_raw_vec),
+        );
+        for i in &mut self.instance_collection.instances {
+            i.rotate(Vector3::new(0.01, 0.01, 0.01));
+        }
     }
 
     pub fn render(&self) -> Result<(), wgpu::SwapChainError> {
@@ -273,11 +301,12 @@ impl State {
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        self.depth_texture =
-            texture::Texture::create_depth_texture(&self.device, &self.sc_desc, "depth_texture");
         self.size = new_size;
         self.sc_desc.width = new_size.width;
         self.sc_desc.height = new_size.height;
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
+        self.camera.aspect = self.sc_desc.width as f32 / self.sc_desc.height as f32;
+        self.depth_texture =
+            texture::Texture::create_depth_texture(&self.device, &self.sc_desc, "depth_texture");
     }
 }

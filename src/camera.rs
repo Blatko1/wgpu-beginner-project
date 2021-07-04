@@ -13,14 +13,14 @@ pub struct Camera {
     eye: Point3<f32>,
     target: Point3<f32>,
     up: Vector3<f32>,
-    aspect: f32,
+    pub aspect: f32,
     fov: f32,
     near: f32,
     far: f32,
     rotation_axis: Vector3<f32>,
     angle: f32,
+    radius: Vector3<f32>,
     translation: Vector3<f32>,
-    position: Vector3<f32>,
 }
 
 impl Camera {
@@ -40,8 +40,8 @@ impl Camera {
             far: 100.0,
             rotation_axis: Vector3::new(0., 0., 0.),
             angle: 0.0,
+            radius: Vector3::new(0., 0., 0.),
             translation: Vector3::new(0., 0., 0.),
-            position: Vector3::new(0., 0., 0.),
         }
     }
 
@@ -52,25 +52,22 @@ impl Camera {
             self.eye.z + self.target.z,
         );
 
-        let center =
-            Translation3::new(self.position.x, self.position.y, self.position.z).to_homogeneous();
+        let translation =
+            Translation3::new(self.translation.x, self.translation.y, self.translation.z)
+                .to_homogeneous();
         let rot = Rotation3::from_axis_angle(&Unit::new_normalize(self.rotation_axis), self.angle)
             .matrix()
             .to_homogeneous();
-        let translation = Translation3::new(
-            -self.translation.x,
-            -self.translation.y,
-            -self.translation.z,
-        )
-        .to_homogeneous();
+        let radius_from_center =
+            Translation3::new(self.radius.x, self.radius.y, self.radius.z).to_homogeneous();
         let view = Matrix4::look_at_rh(&self.eye, &target, &self.up);
-        let model = center * rot * translation;
+        let model = radius_from_center * rot * translation;
         let proj = Matrix4::new_perspective(self.aspect, self.fov, self.near, self.far);
         let result = OPENGL_TO_WGPU_MATRIX * proj * view * model.try_inverse().unwrap();
         return result;
     }
 }
-
+#[allow(dead_code)]
 fn print_matrix(matrix: Matrix4<f32>) {
     println!("\n\n\nMatrix:\n");
     for (n, f) in matrix.iter().enumerate() {
@@ -91,7 +88,6 @@ pub struct CameraController {
     down: f32,
     yaw: f32,
     pitch: f32,
-    roll: f32,
 }
 
 impl CameraController {
@@ -104,9 +100,8 @@ impl CameraController {
             right: 0.,
             up: 0.,
             down: 0.,
-            yaw: 90.0,
+            yaw: 0.0,
             pitch: 0.0,
-            roll: 0.0,
         }
     }
 

@@ -12,6 +12,7 @@ mod model;
 mod texture;
 mod uniform_matrix;
 mod vertex_index;
+mod generation;
 
 use main_state::State;
 

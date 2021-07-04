@@ -1,5 +1,5 @@
-use crate::model::{Mesh, Model};
-use nalgebra::{Rotation3, Translation3, Vector3};
+use crate::model::Model;
+use nalgebra::{Rotation3, Translation3, Unit, Vector3};
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
@@ -41,21 +41,38 @@ impl InstanceRaw {
 
 #[derive(Clone)]
 pub struct Instance {
-    pub position: Vector3<f32>,
-    pub rotation: Rotation3<f32>,
+    pub translation: Vector3<f32>,
+    pub rotation: Vector3<f32>,
+    pub radius: Vector3<f32>,
 }
 
 impl Instance {
-    pub fn new(position: Vector3<f32>, rotation: Rotation3<f32>) -> Self {
-        Self { position, rotation }
+    pub fn new(translation: Vector3<f32>, rotation: Vector3<f32>, radius: Vector3<f32>) -> Self {
+        Self {
+            translation,
+            rotation,
+            radius,
+        }
     }
 
     pub fn to_raw(&self) -> InstanceRaw {
+        let radius_from_center =
+            Translation3::new(self.radius.x, self.radius.y, self.radius.z)
+                .to_homogeneous();
+        let rot = Rotation3::new(self.rotation).matrix().to_homogeneous();
+        let translation =
+            Translation3::new(self.translation.x, self.translation.y, self.translation.z).to_homogeneous();
         InstanceRaw {
-            matrix: (Translation3::from(self.position).to_homogeneous()
-                * self.rotation.matrix().to_homogeneous())
-            .into(),
+            matrix: (translation * rot * radius_from_center).into(),
         }
+    }
+
+    pub fn translate(&mut self, add_translation: Vector3<f32>) {
+        self.translation += add_translation;
+    }
+
+    pub fn rotate(&mut self, add_rotation: Vector3<f32>) {
+        self.rotation += add_rotation
     }
 }
 
@@ -71,7 +88,7 @@ impl InstanceCollection {
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("{} vertex buffer", name)),
             contents: bytemuck::cast_slice(&instance_raw_vec),
-            usage: wgpu::BufferUsage::VERTEX
+            usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
         Self {
             instances,

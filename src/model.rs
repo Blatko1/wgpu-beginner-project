@@ -1,8 +1,8 @@
 use crate::vertex_index::Vertex;
 use std::ops::Range;
 use wgpu::util::DeviceExt;
-use wgpu::RenderPass;
 
+#[allow(dead_code)]
 pub struct Material {
     // TODO
 }
