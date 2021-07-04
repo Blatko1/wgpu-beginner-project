@@ -6,12 +6,12 @@ use winit::{
 };
 
 mod camera;
+mod instance;
 mod main_state;
 mod model;
 mod texture;
 mod uniform_matrix;
 mod vertex_index;
-mod instance;
 
 use main_state::State;
 

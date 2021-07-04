@@ -3,7 +3,10 @@
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 color;
 
-
+layout(location = 2) in vec4 model_mat1;
+layout(location = 3) in vec4 model_mat2;
+layout(location = 4) in vec4 model_mat3;
+layout(location = 5) in vec4 model_mat4;
 
 layout(set = 0, binding = 0) uniform matrixUniform {
     mat4 proj_view_model_matrix;
@@ -12,6 +15,7 @@ layout(set = 0, binding = 0) uniform matrixUniform {
 layout(location = 0) out vec3 fragColor;
 
 void main(void) {
-    gl_Position = proj_view_model_matrix * vec4(pos.xyz, 1.0);
+    mat4 model_matrix = mat4(model_mat1, model_mat2, model_mat3, model_mat4);
+    gl_Position = proj_view_model_matrix * model_matrix * vec4(pos.xyz, 1.0);
     fragColor = color;
 }

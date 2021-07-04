@@ -1,3 +1,5 @@
+use crate::instance::{Instance, InstanceCollection, InstanceRaw};
+use crate::model::{DrawModel, Mesh, Model};
 use crate::texture::Texture;
 use crate::uniform_matrix::MatrixUniform;
 use crate::{
@@ -5,9 +7,8 @@ use crate::{
     texture,
     vertex_index::{Vertex, VertexLayout},
 };
-use nalgebra::Point3;
+use nalgebra::{Point3, Rotation3, Vector3};
 use wgpu::util::DeviceExt;
-use crate::model::Mesh;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -17,8 +18,7 @@ pub struct State {
     swap_chain: wgpu::SwapChain,
     pub size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
-    model: Mesh,
-    model_uniform: (wgpu::Buffer, wgpu::BindGroupLayout, wgpu::BindGroup),
+    instance_collection: InstanceCollection,
     clear: wgpu::Color,
     camera: Camera,
     camera_controller: CameraController,
@@ -124,13 +124,10 @@ impl State {
         let mut matrix_uniform = MatrixUniform::new(&device, &camera);
         matrix_uniform.update_uniform(&mut camera);
 
-        let model = Mesh::custom_mesh("Cube", &device, VERTICES, INDICES);
-        let model_uniform = ModelUniform::new_uniform("Model Uniform", &device, 1);
-
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&matrix_uniform.bind_group_layout, &model_uniform.bind_group_layout],
+                bind_group_layouts: &[&matrix_uniform.bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -143,7 +140,10 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &vert_shader,
                 entry_point: "main",
-                buffers: &[Vertex::init_buffer_layout(), InstanceUniformRaw::init_buffer_layout()],
+                buffers: &[
+                    Vertex::init_buffer_layout(),
+                    InstanceRaw::init_buffer_layout(),
+                ],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -179,24 +179,26 @@ impl State {
                 }],
             }),
         });
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
-            usage: wgpu::BufferUsage::VERTEX,
-        });
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES),
-            usage: wgpu::BufferUsage::INDEX,
-        });
-
         let clear = wgpu::Color {
             r: 0.1,
             g: 0.2,
             b: 0.3,
             a: 1.0,
         };
+        let mesh = vec![Mesh::custom_mesh("Cube", &device, VERTICES, INDICES)];
+        let model = Model { mesh };
+        let instances = vec![
+            Instance::new(
+                Vector3::new(0., 0., 3.),
+                Rotation3::new(Vector3::new(0., 0., 0.)),
+            ),
+            Instance::new(
+                Vector3::new(0., 0., 6.),
+                Rotation3::new(Vector3::new(0., 0., 0.)),
+            ),
+        ];
+        let instance_collection =
+            InstanceCollection::new("Model Instance Buffer", model, instances, &device);
 
         State {
             surface,
@@ -206,8 +208,7 @@ impl State {
             swap_chain,
             size,
             render_pipeline,
-            model,
-            model_uniform,
+            instance_collection,
             clear,
             camera,
             camera_controller,
@@ -255,11 +256,11 @@ impl State {
 
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
-        render_pass.set_vertex_buffer(0, self.model.vertex_buffer.slice(..));
-        render_pass.set_index_buffer(self.model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-        render_pass.draw_indexed(0..self.model.index_length as u32, 0, 0..1);
-
+        render_pass.draw_mesh_instanced(
+            &self.instance_collection.model,
+            &self.instance_collection.buffer,
+            0..self.instance_collection.instances.len() as _,
+        );
         drop(render_pass);
 
         self.queue.submit(std::iter::once(encoder.finish()));

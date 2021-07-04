@@ -1,6 +1,7 @@
 use crate::vertex_index::Vertex;
 use std::ops::Range;
 use wgpu::util::DeviceExt;
+use wgpu::RenderPass;
 
 pub struct Material {
     // TODO
@@ -13,18 +14,13 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    fn draw_mesh<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
-        self.draw_mesh_instanced(pass, 0..1);
-    }
-
-    fn draw_mesh_instanced<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, instances: Range<u32>, ) {
-        pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-        pass.draw_indexed(0..self.index_length, 0, instances);
-    }
-
-    pub fn custom_mesh(name: &str, device: &wgpu::Device, vertices: &[Vertex], indices: &[u16]) -> Self {
+    #[allow(dead_code)]
+    pub fn custom_mesh(
+        name: &str,
+        device: &wgpu::Device,
+        vertices: &[Vertex],
+        indices: &[u16],
+    ) -> Self {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("{} Vertex Buffer", name)),
             contents: bytemuck::cast_slice(vertices),
@@ -45,18 +41,36 @@ impl Mesh {
 }
 
 pub struct Model {
-    mesh: Vec<Mesh>,
-    model_matrix: [[f32; 4]; 4],
+    pub mesh: Vec<Mesh>,
 }
 
-impl Model {
-    fn draw_model<'a>(&'a mut self, pass: &mut wgpu::RenderPass<'a>) {
-        self.draw_model_instanced(pass, 0..1);
+pub trait DrawModel<'a> {
+    fn draw_mesh(&mut self, model: &'a Model, instance_buffer: &'a wgpu::Buffer);
+    fn draw_mesh_instanced(
+        &mut self,
+        model: &'a Model,
+        instance_buffer: &'a wgpu::Buffer,
+        instances: Range<u32>,
+    );
+}
+
+impl<'a> DrawModel<'a> for wgpu::RenderPass<'a> {
+    fn draw_mesh(&mut self, model: &'a Model, instance_buffer: &'a wgpu::Buffer) {
+        self.draw_mesh_instanced(model, instance_buffer, 0..1);
     }
 
-    fn draw_model_instanced<'a>(&'a mut self, pass: &mut wgpu::RenderPass<'a>, instances: Range<u32>) {
-        for m in &mut self.mesh {
-            m.draw_mesh_instanced(pass, instances.clone());
+    fn draw_mesh_instanced(
+        &mut self,
+        model: &'a Model,
+        instance_buffer: &'a wgpu::Buffer,
+        instances: Range<u32>,
+    ) {
+        for m in &model.mesh {
+            self.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+            self.set_vertex_buffer(1, instance_buffer.slice(..));
+            self.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+            self.draw_indexed(0..m.index_length, 0, instances.clone());
         }
     }
 }

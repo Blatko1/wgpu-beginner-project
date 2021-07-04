@@ -11,6 +11,7 @@ pub struct Texture {
 }
 
 impl Texture {
+    #[allow(dead_code)]
     pub fn from_bytes(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -23,6 +24,7 @@ impl Texture {
 
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float; // 1.
 
+    #[allow(dead_code)]
     pub fn create_depth_texture(
         device: &wgpu::Device,
         sc_desc: &wgpu::SwapChainDescriptor,
@@ -68,6 +70,7 @@ impl Texture {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -125,6 +128,7 @@ impl Texture {
         })
     }
 
+    #[allow(dead_code)]
     pub fn load<P: AsRef<Path>>(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
