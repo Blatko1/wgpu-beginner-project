@@ -9,6 +9,7 @@ use crate::{
 };
 use bytemuck::bytes_of;
 use nalgebra::{Point3, Rotation3, Vector3};
+use crate::generation::flat_terrain;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -92,7 +93,7 @@ impl State {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    features: wgpu::Features::empty(),
+                    features: wgpu::Features::NON_FILL_POLYGON_MODE,
                     limits: wgpu::Limits::default(),
                 },
                 None,
@@ -152,7 +153,7 @@ impl State {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
                 clamp_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
+                polygon_mode: wgpu::PolygonMode::Line,
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {
@@ -187,14 +188,16 @@ impl State {
             a: 1.0,
         };
         let mesh = vec![Mesh::custom_mesh("Cube", &device, VERTICES, INDICES)];
+        let terrain_mesh = vec![flat_terrain("flat", 10, 10, &device)];
+        let terrain = Model { mesh: terrain_mesh };
         let model = Model { mesh };
         let instances = vec![
             Instance::new(
                 Vector3::new(0., 0., 0.),
-                Vector3::new(0., 0., 1.),
+                Vector3::new(0., 0., 0.),
                 Vector3::new(0., 0., 0.),
             ),
-            Instance::new(
+            /*Instance::new(
                 Vector3::new(0., 0., 3.),
                 Vector3::new(0., 0., 1.),
                 Vector3::new(0., 0., 0.),
@@ -208,11 +211,12 @@ impl State {
                 Vector3::new(0., 0., 9.),
                 Vector3::new(0., 0., 1.),
                 Vector3::new(0., 0., 0.),
-            ),
+            ),*/
         ];
         let instance_collection =
-            InstanceCollection::new("Model Instance Buffer", model, instances, &device);
+            InstanceCollection::new("Model Instance Buffer", terrain, instances, &device);
         let rotation: f32 = 0.;
+
         State {
             surface,
             device,
@@ -250,9 +254,9 @@ impl State {
             0,
             bytemuck::cast_slice(&instance_raw_vec),
         );
-        for i in &mut self.instance_collection.instances {
+        /*for i in &mut self.instance_collection.instances {
             i.rotate(Vector3::new(0.01, 0.01, 0.01));
-        }
+        }*/
     }
 
     pub fn render(&self) -> Result<(), wgpu::SwapChainError> {
