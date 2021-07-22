@@ -9,5 +9,5 @@ layout(set = 1, binding = 0) uniform texture2D t_diffuse;
 layout(set = 1, binding = 1) uniform sampler s_diffuse;
 
 void main(void) {
-    outColor = texture(sampler2D(t_diffuse, s_diffuse), frag_tex_cords) /* vec4(fragColor.xyz, 1.0)*/;
+    outColor = texture(sampler2D(t_diffuse, s_diffuse), frag_tex_cords) * vec4(fragColor.xyz, 1.0);
 }

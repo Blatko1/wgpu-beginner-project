@@ -100,7 +100,7 @@ impl CameraController {
             right: 0.,
             up: 0.,
             down: 0.,
-            yaw: 0.0,
+            yaw: 270.0,
             pitch: 0.0,
         }
     }

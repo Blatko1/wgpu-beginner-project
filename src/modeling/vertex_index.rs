@@ -7,6 +7,7 @@ pub struct Vertex {
     pub position: [f32; 3],
     pub tex_cords: [f32; 2],
     pub color: [f32; 3],
+    pub normal: [f32; 3],
 }
 
 impl VertexLayout for Vertex {
@@ -29,6 +30,11 @@ impl VertexLayout for Vertex {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
                     shader_location: 2,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                    shader_location: 3,
                 },
             ],
         }

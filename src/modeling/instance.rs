@@ -1,5 +1,5 @@
-use crate::model::Model;
-use nalgebra::{Rotation3, Translation3, Unit, Vector3};
+use crate::modeling::model::Model;
+use nalgebra::{Rotation3, Translation3, Vector3};
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
@@ -17,22 +17,22 @@ impl InstanceRaw {
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
                     offset: 0,
-                    shader_location: 3,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                     shader_location: 4,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                    offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                     shader_location: 5,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
+                    offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
                     shader_location: 6,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
+                    shader_location: 7,
                 },
             ],
         }
@@ -57,20 +57,22 @@ impl Instance {
 
     pub fn to_raw(&self) -> InstanceRaw {
         let radius_from_center =
-            Translation3::new(self.radius.x, self.radius.y, self.radius.z)
-                .to_homogeneous();
+            Translation3::new(self.radius.x, self.radius.y, self.radius.z).to_homogeneous();
         let rot = Rotation3::new(self.rotation).matrix().to_homogeneous();
         let translation =
-            Translation3::new(self.translation.x, self.translation.y, self.translation.z).to_homogeneous();
+            Translation3::new(self.translation.x, self.translation.y, self.translation.z)
+                .to_homogeneous();
         InstanceRaw {
             matrix: (translation * rot * radius_from_center).into(),
         }
     }
 
+    #[allow(dead_code)]
     pub fn translate(&mut self, add_translation: Vector3<f32>) {
         self.translation += add_translation;
     }
 
+    #[allow(dead_code)]
     pub fn rotate(&mut self, add_rotation: Vector3<f32>) {
         self.rotation += add_rotation
     }

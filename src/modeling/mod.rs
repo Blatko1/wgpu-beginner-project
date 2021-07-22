@@ -1,4 +1,4 @@
-mod custom_models;
-mod instance;
-mod model;
-mod vertex_index;
+pub mod custom_models;
+pub mod instance;
+pub mod model;
+pub mod vertex_index;

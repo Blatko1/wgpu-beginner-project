@@ -1,3 +1,5 @@
+use wgpu::util::DeviceExt;
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 
@@ -7,3 +9,13 @@ struct Light {
     _padding: u32,
     color: [f32; 3],
 }
+
+/*impl Light {
+    fn new_light_buffer(&self, name: &str, device: &wgpu::Device) -> wgpu::Buffer {
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!("{} Light Buffer", name)),
+            contents: bytemuck::cast_slice(&[self]),
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST
+        })
+    }
+}*/

@@ -1,15 +1,14 @@
-use crate::instance::{Instance, InstanceCollection, InstanceRaw};
-use crate::model::{DrawModel, Mesh, Model};
+use crate::generation::flat_terrain;
+use crate::modeling::instance::{Instance, InstanceCollection, InstanceRaw};
+use crate::modeling::model::{DrawModel, Model, Material};
 use crate::texture::Texture;
 use crate::uniform_matrix::MatrixUniform;
 use crate::{
     camera::{Camera, CameraController},
+    modeling::vertex_index::{Vertex, VertexLayout},
     texture,
-    vertex_index::{Vertex, VertexLayout},
 };
-use bytemuck::bytes_of;
-use nalgebra::{Point3, Rotation3, Vector3};
-use crate::generation::flat_terrain;
+use nalgebra::{Point3, Vector3};
 
 pub struct State {
     surface: wgpu::Surface,
@@ -25,56 +24,7 @@ pub struct State {
     camera_controller: CameraController,
     matrix_uniform: MatrixUniform,
     depth_texture: Texture,
-    rotation: f32,
 }
-
-const VERTICES: &[Vertex] = &[
-    Vertex {
-        //br
-        position: [1.0, -1.0, 1.0],
-        color: [0.5, 0.0, 0.0],
-    },
-    Vertex {
-        //tl
-        position: [-1.0, 1.0, 1.0],
-        color: [0.0, 0.5, 0.0],
-    },
-    Vertex {
-        //bl
-        position: [-1.0, -1.0, 1.0],
-        color: [0.0, 0.0, 0.5],
-    },
-    Vertex {
-        //tr
-        position: [1.0, 1.0, 1.0],
-        color: [0.5, 0.0, 0.0],
-    },
-    Vertex {
-        //br    4
-        position: [1.0, -1.0, -1.0],
-        color: [0.0, 1.0, 0.0],
-    },
-    Vertex {
-        //tr
-        position: [1.0, 1.0, -1.0],
-        color: [0.0, 0.0, 0.5],
-    },
-    Vertex {
-        //bl
-        position: [-1.0, -1.0, -1.0],
-        color: [0.5, 0.0, 0.0],
-    },
-    Vertex {
-        //tl
-        position: [-1.0, 1.0, -1.0],
-        color: [0.0, 0.5, 0.0],
-    },
-];
-
-const INDICES: &[u16] = &[
-    0, 1, 2, 0, 3, 1, 0, 5, 3, 0, 4, 5, 4, 6, 5, 5, 6, 7, 6, 2, 1, 6, 1, 7, 1, 3, 5, 5, 7, 1, 0, 2,
-    4, 2, 6, 4,
-];
 
 impl State {
     pub async fn new(window: &winit::window::Window) -> Self {
@@ -116,8 +66,8 @@ impl State {
             device.create_shader_module(&wgpu::include_spirv!("shaders/shader.frag.spv"));
 
         let mut camera = Camera::new(
-            Point3::new(0., 0., 2.),
-            Point3::new(0., 0., 0.),
+            Point3::new(0., 0., 3.),
+            Point3::new(0., 0., 1.),
             &sc_desc,
             45.,
         );
@@ -126,10 +76,12 @@ impl State {
         let mut matrix_uniform = MatrixUniform::new(&device, &camera);
         matrix_uniform.update_uniform(&mut camera);
 
+        let texture_layout = &Texture::texture_bind_group_layout(&device);
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&matrix_uniform.bind_group_layout],
+                bind_group_layouts: &[&matrix_uniform.bind_group_layout, &texture_layout],
                 push_constant_ranges: &[],
             });
 
@@ -153,7 +105,7 @@ impl State {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
                 clamp_depth: false,
-                polygon_mode: wgpu::PolygonMode::Line,
+                polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {
@@ -187,35 +139,27 @@ impl State {
             b: 0.3,
             a: 1.0,
         };
-        let mesh = vec![Mesh::custom_mesh("Cube", &device, VERTICES, INDICES)];
-        let terrain_mesh = vec![flat_terrain("flat", 10, 10, &device)];
-        let terrain = Model { mesh: terrain_mesh };
-        let model = Model { mesh };
+        let res_dir = std::path::Path::new(env!("OUT_DIR")).join("res");
+
+        /*let terrain_mesh = vec![flat_terrain("flat", 10, 10, &device)];
+        let _terrain = Model { mesh: terrain_mesh, material: material.clone() };*/
+
+        let obj = Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
+
         let instances = vec![
             Instance::new(
                 Vector3::new(0., 0., 0.),
                 Vector3::new(0., 0., 0.),
                 Vector3::new(0., 0., 0.),
             ),
-            /*Instance::new(
+            Instance::new(
                 Vector3::new(0., 0., 3.),
                 Vector3::new(0., 0., 1.),
                 Vector3::new(0., 0., 0.),
             ),
-            Instance::new(
-                Vector3::new(0., 0., 6.),
-                Vector3::new(0., 0., 1.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(0., 0., 9.),
-                Vector3::new(0., 0., 1.),
-                Vector3::new(0., 0., 0.),
-            ),*/
         ];
         let instance_collection =
-            InstanceCollection::new("Model Instance Buffer", terrain, instances, &device);
-        let rotation: f32 = 0.;
+            InstanceCollection::new("Model Instance Buffer", obj, instances, &device);
 
         State {
             surface,
@@ -231,7 +175,6 @@ impl State {
             camera_controller,
             matrix_uniform,
             depth_texture,
-            rotation,
         }
     }
 
@@ -254,9 +197,6 @@ impl State {
             0,
             bytemuck::cast_slice(&instance_raw_vec),
         );
-        /*for i in &mut self.instance_collection.instances {
-            i.rotate(Vector3::new(0.01, 0.01, 0.01));
-        }*/
     }
 
     pub fn render(&self) -> Result<(), wgpu::SwapChainError> {
