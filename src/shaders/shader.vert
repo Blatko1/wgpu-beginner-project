@@ -3,11 +3,12 @@
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec2 tex_cords;
 layout(location = 2) in vec3 color;
+layout(location = 3) in vec3 normals;
 
-layout(location = 3) in vec4 model_mat1;
-layout(location = 4) in vec4 model_mat2;
-layout(location = 5) in vec4 model_mat3;
-layout(location = 6) in vec4 model_mat4;
+layout(location = 4) in vec4 model_mat1;
+layout(location = 5) in vec4 model_mat2;
+layout(location = 6) in vec4 model_mat3;
+layout(location = 7) in vec4 model_mat4;
 
 layout(set = 0, binding = 0) uniform matrixUniform {
     mat4 proj_view_model_matrix;
