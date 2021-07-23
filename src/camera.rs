@@ -10,7 +10,7 @@ const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new(
 );
 
 pub struct Camera {
-    eye: Point3<f32>,
+    pub eye: Point3<f32>,
     target: Point3<f32>,
     up: Vector3<f32>,
     pub aspect: f32,

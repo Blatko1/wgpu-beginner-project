@@ -6,6 +6,7 @@ use winit::{
 };
 
 mod camera;
+mod debug_info;
 mod generation;
 mod light;
 mod main_state;
@@ -16,6 +17,7 @@ mod uniform_matrix;
 use main_state::State;
 
 fn main() {
+    println!("Starting!");
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 

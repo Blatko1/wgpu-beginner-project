@@ -5,7 +5,7 @@ use anyhow::Result;
 use std::fs;
 use std::ops::Range;
 use std::path::Path;
-use tobj::{LoadOptions};
+use tobj::LoadOptions;
 use wgpu::util::DeviceExt;
 
 pub struct Material {
@@ -14,9 +14,19 @@ pub struct Material {
 }
 
 impl Material {
-    pub fn custom_material<P: AsRef<Path>>(path: P, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+    pub fn custom_material<P: AsRef<Path>>(
+        path: P,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Self {
         let diffuse_bytes = fs::read(path.as_ref()).unwrap();
-        let texture = Texture::from_bytes(&device, &queue, diffuse_bytes.as_slice(), path.as_ref().to_str().unwrap()).unwrap();
+        let texture = Texture::from_bytes(
+            &device,
+            &queue,
+            diffuse_bytes.as_slice(),
+            path.as_ref().to_str().unwrap(),
+        )
+        .unwrap();
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &Texture::texture_bind_group_layout(&device),
             entries: &[
@@ -29,7 +39,10 @@ impl Material {
                     resource: wgpu::BindingResource::Sampler(&texture.sampler),
                 },
             ],
-            label: Some(&format!("{} diffuse_bind_group", path.as_ref().to_str().unwrap())),
+            label: Some(&format!(
+                "{} diffuse_bind_group",
+                path.as_ref().to_str().unwrap()
+            )),
         });
 
         Self {
@@ -65,7 +78,6 @@ impl Mesh {
             contents: bytemuck::cast_slice(indices),
             usage: wgpu::BufferUsage::INDEX,
         });
-        println!("{:?}", indices);
         let index_length = indices.len() as u32;
         Self {
             vertex_buffer,

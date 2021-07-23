@@ -1,6 +1,6 @@
 use crate::generation::flat_terrain;
 use crate::modeling::instance::{Instance, InstanceCollection, InstanceRaw};
-use crate::modeling::model::{DrawModel, Model, Material};
+use crate::modeling::model::{DrawModel, Material, Model};
 use crate::texture::Texture;
 use crate::uniform_matrix::MatrixUniform;
 use crate::{
@@ -9,11 +9,15 @@ use crate::{
     texture,
 };
 use nalgebra::{Point3, Vector3};
+use crate::debug_info::{DebugInfoBuilder, DebugInfo};
 
 pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    staging_belt: wgpu::util::StagingBelt,
+    local_pool: futures::executor::LocalPool,
+    local_spawner: futures::executor::LocalSpawner,
     sc_desc: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     pub size: winit::dpi::PhysicalSize<u32>,
@@ -24,6 +28,7 @@ pub struct State {
     camera_controller: CameraController,
     matrix_uniform: MatrixUniform,
     depth_texture: Texture,
+    debug_info: DebugInfo
 }
 
 impl State {
@@ -38,7 +43,6 @@ impl State {
             })
             .await
             .unwrap();
-
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -51,15 +55,20 @@ impl State {
             .await
             .unwrap();
 
+        let staging_belt = wgpu::util::StagingBelt::new(1024);
+        let local_pool = futures::executor::LocalPool::new();
+        let local_spawner = local_pool.spawner();
+
+        let sc_format = adapter.get_swap_chain_preferred_format(&surface).unwrap();
+
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-            format: adapter.get_swap_chain_preferred_format(&surface).unwrap(),
+            format: sc_format,
             width: size.width,
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
-
         let vert_shader =
             device.create_shader_module(&wgpu::include_spirv!("shaders/shader.vert.spv"));
         let frag_shader =
@@ -160,11 +169,14 @@ impl State {
         ];
         let instance_collection =
             InstanceCollection::new("Model Instance Buffer", obj, instances, &device);
-
+        let debug_info = DebugInfoBuilder::new(10., 10., 20., sc_format, (size.width, size.height)).build(&device).unwrap();
         State {
             surface,
             device,
             queue,
+            staging_belt,
+            local_pool,
+            local_spawner,
             sc_desc,
             swap_chain,
             size,
@@ -175,6 +187,7 @@ impl State {
             camera_controller,
             matrix_uniform,
             depth_texture,
+            debug_info
         }
     }
 
@@ -199,7 +212,7 @@ impl State {
         );
     }
 
-    pub fn render(&self) -> Result<(), wgpu::SwapChainError> {
+    pub fn render(&mut self) -> Result<(), wgpu::SwapChainError> {
         let frame = self.swap_chain.get_current_frame()?.output;
         let mut encoder = self
             .device
@@ -235,7 +248,21 @@ impl State {
         );
         drop(render_pass);
 
+        self.debug_info.draw(&self.device, &mut self.staging_belt, &mut encoder, &frame.view, &self.camera);
+
+        self.staging_belt.finish();
         self.queue.submit(std::iter::once(encoder.finish()));
+
+        // Recall unused staging buffers
+        use futures::task::SpawnExt;
+
+        self.local_spawner
+            .spawn(self.staging_belt.recall())
+            .expect("Recall staging belt");
+
+        self.local_pool.run_until_stalled();
+
+        unsafe { self.debug_info.update_info(); }
 
         Ok(())
     }
