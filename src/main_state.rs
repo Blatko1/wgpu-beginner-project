@@ -156,12 +156,42 @@ impl State {
         let instances = vec![
             Instance::new(
                 Vector3::new(0., 0., 0.),
-                Vector3::new(0., 0., 0.),
+                Vector3::new(0., 0., 1.),
                 Vector3::new(0., 0., 0.),
             ),
             Instance::new(
                 Vector3::new(0., 0., 3.),
-                Vector3::new(0., 0., 1.),
+                Vector3::new(0., 0., 4.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(0., 0., 6.),
+                Vector3::new(0., 0., 2.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(0., 0., 9.),
+                Vector3::new(0., 0., 3.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(3., 0., 0.),
+                Vector3::new(0., 0., 3.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(6., 0., 3.),
+                Vector3::new(0., 0., 3.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(9., 0., 6.),
+                Vector3::new(0., 0., 3.),
+                Vector3::new(0., 0., 0.),
+            ),
+            Instance::new(
+                Vector3::new(12., 0., 9.),
+                Vector3::new(0., 0., 3.),
                 Vector3::new(0., 0., 0.),
             ),
         ];
@@ -211,7 +241,7 @@ impl State {
         self.queue.write_buffer(
             &self.matrix_uniform.buffer,
             0,
-            bytemuck::cast_slice(&[self.matrix_uniform.proj_view_model_matrix]),
+            bytemuck::cast_slice(&[self.matrix_uniform.data]),
         );
         let instance_raw_vec = self
             .model_info
@@ -224,6 +254,9 @@ impl State {
             0,
             bytemuck::cast_slice(&instance_raw_vec),
         );
+        /*for i in &mut self.model_info.instances {
+            i.rotate(Vector3::new(0., 0., 0.005));
+        }*/
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SwapChainError> {

@@ -11,17 +11,19 @@ layout(location = 7) in vec4 model_mat4;
 
 layout(set = 0, binding = 0) uniform matrixUniform {
     mat4 proj_view_model_matrix;
+    vec3 view_pos;
 };
 
 layout(set = 1, binding = 0)
 uniform Light {
     vec3 u_position;
-    vec3 padding1;
-    vec2 padding2;
     vec3 u_color;
 };
 
+float scale = 0.25;
+
 void main(void) {
-    gl_Position = proj_view_model_matrix * vec4(pos.x, pos.y + 5.0, pos.z, 1.0);
-    v_color = padding1;
+    vec3 l_pos = scale * pos + u_position;
+    gl_Position = proj_view_model_matrix * vec4(l_pos, 1.0);
+    v_color = u_color;
 }

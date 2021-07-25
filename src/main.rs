@@ -25,6 +25,7 @@ fn main() {
     let mut state = block_on(State::new(&window));
 
     window.set_title("wgpu graphics");
+    window.set_cursor_grab(true);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;

@@ -1,11 +1,12 @@
 use crate::modeling::model::Model;
-use nalgebra::{Rotation3, Translation3, Vector3};
+use nalgebra::{Rotation3, Translation3, Vector3, Matrix3};
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct InstanceRaw {
     pub matrix: [[f32; 4]; 4],
+    pub n_matrix: [[f32; 3]; 3]
 }
 
 impl InstanceRaw {
@@ -34,6 +35,22 @@ impl InstanceRaw {
                     offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
                     shader_location: 7,
                 },
+                // 3x3 Matrix for normals.
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 16]>() as wgpu::BufferAddress,
+                    shader_location: 8,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 19]>() as wgpu::BufferAddress,
+                    shader_location: 9,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 22]>() as wgpu::BufferAddress,
+                    shader_location: 10,
+                },
             ],
         }
     }
@@ -58,12 +75,14 @@ impl Instance {
     pub fn to_raw(&self) -> InstanceRaw {
         let radius_from_center =
             Translation3::new(self.radius.x, self.radius.y, self.radius.z).to_homogeneous();
-        let rot = Rotation3::new(self.rotation).matrix().to_homogeneous();
+        let rot = Rotation3::new(self.rotation);
         let translation =
             Translation3::new(self.translation.x, self.translation.y, self.translation.z)
                 .to_homogeneous();
+        let n_matrix = Matrix3::from(rot);
         InstanceRaw {
-            matrix: (translation * rot * radius_from_center).into(),
+            matrix: (translation * rot.matrix().to_homogeneous() * radius_from_center).into(),
+            n_matrix: n_matrix.into()
         }
     }
 
