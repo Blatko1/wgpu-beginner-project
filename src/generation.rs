@@ -2,6 +2,7 @@ use crate::modeling::model::Mesh;
 use crate::modeling::vertex_index::Vertex;
 use rand::Rng;
 
+#[allow(dead_code)]
 pub fn flat_terrain(name: &str, width: u32, height: u32, device: &wgpu::Device) -> Mesh {
     let mut vertices: Vec<Vertex> = Vec::new();
     let mut indices: Vec<u32> = Vec::new();

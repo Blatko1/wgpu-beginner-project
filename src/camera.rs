@@ -67,16 +67,6 @@ impl Camera {
         return result;
     }
 }
-#[allow(dead_code)]
-fn print_matrix(matrix: Matrix4<f32>) {
-    println!("\n\n\nMatrix:\n");
-    for (n, f) in matrix.iter().enumerate() {
-        print!("{:.2},", f);
-        if (n + 1) % 4 == 0 {
-            print!("\n");
-        }
-    }
-}
 
 pub struct CameraController {
     speed: f32,

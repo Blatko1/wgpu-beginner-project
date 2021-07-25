@@ -78,16 +78,16 @@ impl Instance {
     }
 }
 
-pub struct InstanceCollection {
+pub struct ModelRenderInfo {
     pub instances: Vec<Instance>,
     pub model: Model,
-    pub buffer: wgpu::Buffer,
+    pub instance_buffer: wgpu::Buffer,
 }
 
-impl InstanceCollection {
+impl ModelRenderInfo {
     pub fn new(name: &str, model: Model, instances: Vec<Instance>, device: &wgpu::Device) -> Self {
         let instance_raw_vec = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("{} vertex buffer", name)),
             contents: bytemuck::cast_slice(&instance_raw_vec),
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
@@ -95,7 +95,7 @@ impl InstanceCollection {
         Self {
             instances,
             model,
-            buffer,
+            instance_buffer,
         }
     }
 }

@@ -11,6 +11,7 @@ mod generation;
 mod light;
 mod main_state;
 mod modeling;
+mod render_pipeline_tools;
 mod texture;
 mod uniform_matrix;
 

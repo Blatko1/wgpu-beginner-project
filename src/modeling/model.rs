@@ -1,9 +1,9 @@
+use crate::modeling::instance::ModelRenderInfo;
 use crate::modeling::vertex_index::Vertex;
 use crate::texture::Texture;
 use anyhow::Context;
 use anyhow::Result;
 use std::fs;
-use std::ops::Range;
 use std::path::Path;
 use tobj::LoadOptions;
 use wgpu::util::DeviceExt;
@@ -14,6 +14,7 @@ pub struct Material {
 }
 
 impl Material {
+    #[allow(dead_code)]
     pub fn custom_material<P: AsRef<Path>>(
         path: P,
         device: &wgpu::Device,
@@ -152,7 +153,7 @@ impl Model {
                         m.mesh.positions[i * 3 + 2],
                     ],
                     tex_cords: [m.mesh.texcoords[i * 2], m.mesh.texcoords[i * 2 + 1]],
-                    color: [0.0, 1.0, 0.0],
+                    color: [0.0, 0.0, 0.0],
                     normal: [
                         m.mesh.normals[i * 3],
                         m.mesh.normals[i * 3 + 1],
@@ -178,33 +179,53 @@ impl Model {
 }
 
 pub trait DrawModel<'a> {
-    fn draw_mesh(&mut self, model: &'a Model, instance_buffer: &'a wgpu::Buffer);
-    fn draw_mesh_instanced(
-        &mut self,
-        model: &'a Model,
-        instance_buffer: &'a wgpu::Buffer,
-        instances: Range<u32>,
-    );
+    fn draw_model(&mut self, model_info: &'a ModelRenderInfo, light: &'a wgpu::BindGroup);
 }
 
 impl<'a> DrawModel<'a> for wgpu::RenderPass<'a> {
-    fn draw_mesh(&mut self, model: &'a Model, instance_buffer: &'a wgpu::Buffer) {
-        self.draw_mesh_instanced(model, instance_buffer, 0..1);
-    }
-
-    fn draw_mesh_instanced(
+    fn draw_model(
         &mut self,
-        model: &'a Model,
-        instance_buffer: &'a wgpu::Buffer,
-        instances: Range<u32>,
+        model_info: &'a ModelRenderInfo,
+        light_bind_group: &'a wgpu::BindGroup,
     ) {
-        for m in &model.mesh {
+        self.set_vertex_buffer(1, model_info.instance_buffer.slice(..));
+        self.set_bind_group(2, light_bind_group, &[]);
+        for m in &model_info.model.mesh {
             self.set_vertex_buffer(0, m.vertex_buffer.slice(..));
-            self.set_vertex_buffer(1, instance_buffer.slice(..));
-            self.set_bind_group(1, &model.material.get(m.material).unwrap().bind_group, &[]);
+            self.set_bind_group(
+                1,
+                &model_info
+                    .model
+                    .material
+                    .get(m.material)
+                    .unwrap()
+                    .bind_group,
+                &[],
+            );
             self.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 
-            self.draw_indexed(0..m.index_length, 0, instances.clone());
+            self.draw_indexed(0..m.index_length, 0, 0..model_info.instances.len() as _);
+        }
+    }
+}
+
+pub trait DrawLight<'a> {
+    fn draw_light(&mut self, light_info: &'a ModelRenderInfo, light: &'a wgpu::BindGroup);
+}
+
+impl<'a> DrawLight<'a> for wgpu::RenderPass<'a> {
+    fn draw_light(
+        &mut self,
+        light_info: &'a ModelRenderInfo,
+        light_bind_group: &'a wgpu::BindGroup,
+    ) {
+        self.set_vertex_buffer(1, light_info.instance_buffer.slice(..));
+        self.set_bind_group(1, light_bind_group, &[]);
+        for m in &light_info.model.mesh {
+            self.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+            self.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+            self.draw_indexed(0..m.index_length, 0, 0..light_info.instances.len() as _);
         }
     }
 }
