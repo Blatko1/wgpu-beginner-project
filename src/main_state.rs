@@ -2,7 +2,7 @@ use crate::debug_info::{DebugInfo, DebugInfoBuilder};
 use crate::generation::flat_terrain;
 use crate::light::Light;
 use crate::modeling::instance::{Instance, InstanceRaw, ModelRenderInfo};
-use crate::modeling::model::{DrawLight, DrawModel, Material, Model};
+use crate::modeling::model::{DrawLight, DrawModel, Material, Model, Color};
 use crate::render_pipeline_tools::new_render_pipeline;
 use crate::texture::Texture;
 use crate::uniform_matrix::MatrixUniform;
@@ -91,6 +91,7 @@ impl State {
         let depth_texture =
             texture::Texture::create_depth_texture(&device, &sc_desc, "depth_texture");
 
+        // Main Render Pipeline
         let main_layouts = &[
             &matrix_uniform.bind_group_layout,
             &texture_layout,
@@ -112,12 +113,14 @@ impl State {
                 &[
                     Vertex::init_buffer_layout(),
                     InstanceRaw::init_buffer_layout(),
+                    //Color::init_buffer_layout()
                 ],
             )
         };
 
+        // Lightning Pipeline
         let light = Light {
-            position: [1., 4., 1.],
+            position: [1., 30., 15.],
             _padding: 0,
             color: [1., 1., 1.],
         };
@@ -151,52 +154,20 @@ impl State {
         };
         let res_dir = std::path::Path::new(env!("OUT_DIR")).join("res");
 
+        // Custom model
         let cube = Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
+        let car = Model::load(&device, &queue, &texture_layout, res_dir.join("car/Car.obj")).unwrap();
 
         let instances = vec![
             Instance::new(
                 Vector3::new(0., 0., 0.),
-                Vector3::new(0., 0., 1.),
                 Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(0., 0., 3.),
-                Vector3::new(0., 0., 4.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(0., 0., 6.),
-                Vector3::new(0., 0., 2.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(0., 0., 9.),
-                Vector3::new(0., 0., 3.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(3., 0., 0.),
-                Vector3::new(0., 0., 3.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(6., 0., 3.),
-                Vector3::new(0., 0., 3.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(9., 0., 6.),
-                Vector3::new(0., 0., 3.),
-                Vector3::new(0., 0., 0.),
-            ),
-            Instance::new(
-                Vector3::new(12., 0., 9.),
-                Vector3::new(0., 0., 3.),
                 Vector3::new(0., 0., 0.),
             ),
         ];
-        let model_info = ModelRenderInfo::new("Model Instance Buffer", cube, instances, &device);
+        let model_info = ModelRenderInfo::new("Model Instance Buffer", car, instances, &device);
 
+        // Light object
         let light =
             Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
 

@@ -64,7 +64,6 @@ impl MatrixUniform {
 
     pub fn update_uniform(&mut self, camera: &mut Camera) {
         self.data.view_position = camera.eye.to_homogeneous().into();
-        println!("View_pos: {:?}", self.data.view_position);
         self.data.proj_view_model_matrix = camera.create_view_proj_model_matrix().into();
     }
 }

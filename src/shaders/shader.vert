@@ -14,6 +14,13 @@ layout(location = 8) in vec3 n_matrix1;
 layout(location = 9) in vec3 n_matrix2;
 layout(location = 10) in vec3 n_matrix3;
 
+/*layout(location = 11) in vec3 ambient_color;
+layout(location = 12) in vec3 diffuse_color;
+layout(location = 13) in vec3 specular_color;
+layout(location = 14) in float shinines;
+layout(location = 15) in float include_tex;
+layout(location = 16) in float include_diff_color;*/
+
 layout(set = 0, binding = 0) uniform matrixUniform {
     mat4 proj_view_model_matrix;
     vec3 view_pos;

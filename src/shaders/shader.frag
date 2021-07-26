@@ -21,7 +21,7 @@ layout(set = 2, binding = 0) uniform Light {
 float ambient_strenght = 0.05;
 
 void main(void) {
-    vec4 object_color = texture(sampler2D(t_diffuse, s_diffuse), frag_tex_cords) /* vec4(fragColor.xyz, 1.0)*/;
+    vec4 object_texture = texture(sampler2D(t_diffuse, s_diffuse), frag_tex_cords);
     
     vec3 ambient_color = light_color * ambient_strenght;
 
@@ -37,6 +37,6 @@ void main(void) {
     float diffuse_strenght = max(dot(light_dir, normal), 0.0);
     vec3 diffuse_color = light_color * diffuse_strenght;
 
-    vec3 result = (ambient_color + diffuse_color + specular_color) * object_color.xyz;
+    vec3 result = (ambient_color + diffuse_color + specular_color) /* object_texture.xyz*/ * fragColor;
     outColor = vec4(result, 1.0);
 }

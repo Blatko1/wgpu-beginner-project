@@ -11,14 +11,17 @@ use wgpu::util::DeviceExt;
 pub struct Material {
     pub texture: Texture,
     pub bind_group: wgpu::BindGroup,
+    //pub colors: Vec<Color>,
+    //pub color_buffer: wgpu::Buffer
 }
 
 impl Material {
     #[allow(dead_code)]
     pub fn custom_material<P: AsRef<Path>>(
-        path: P,
+        path: /*Option<*/P/*>*/,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        //diffuse_color: Option<Vec<[f32; 3]>>
     ) -> Self {
         let diffuse_bytes = fs::read(path.as_ref()).unwrap();
         let texture = Texture::from_bytes(
@@ -45,10 +48,32 @@ impl Material {
                 path.as_ref().to_str().unwrap()
             )),
         });
+        /*let colors = Color {
+            ambient_color: [1., 1., 1.],
+            diffuse_color: match diffuse_color {
+                None => [0., 0., 0.],
+                Some(d) => d
+            },
+            specular_color: [0., 0., 0.],
+            shininess: 0.0,
+            include_texture: 1.,
+            include_diff_color: 1.
+        };
+
+        let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!(
+                "{} color:buffer",
+                path.as_ref().to_str().unwrap()
+            )),
+            contents: bytemuck::cast_slice(&[colors]),
+            usage: wgpu::BufferUsage::VERTEX
+        })*/
 
         Self {
             texture,
             bind_group,
+            //colors,
+            //color_buffer
         }
     }
 }
@@ -89,6 +114,58 @@ impl Mesh {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Color {
+    ambient_color: [f32; 3],
+    diffuse_color: [f32; 3],
+    specular_color: [f32; 3],
+    shininess: f32,
+    include_texture: f32,
+    include_diff_color: f32
+}
+
+impl Color {
+    pub fn init_buffer_layout<'a>() -> wgpu::VertexBufferLayout<'a> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::InputStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: 0,
+                    shader_location: 11,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 12,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 6]>() as wgpu::BufferAddress,
+                    shader_location: 13,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: std::mem::size_of::<[f32; 9]>() as wgpu::BufferAddress,
+                    shader_location: 14,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: std::mem::size_of::<[f32; 10]>() as wgpu::BufferAddress,
+                    shader_location: 15,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: std::mem::size_of::<[f32; 11]>() as wgpu::BufferAddress,
+                    shader_location: 16,
+                },
+            ],
+        }
+    }
+}
+
 pub struct Model {
     pub mesh: Vec<Mesh>,
     pub material: Vec<Material>,
@@ -115,12 +192,18 @@ impl Model {
         // We're assuming that the texture files are stored with the obj file
         let containing_folder = path.as_ref().parent().context("Directory has no parent")?;
 
+        let mut diffuse_color: Vec<[f32; 3]>  = Vec::new();
+        let mut ambient_color: Vec<[f32; 3]>  = Vec::new();
+        let mut specular_color: Vec<[f32; 3]>  = Vec::new();
+
         let mut materials = Vec::new();
         for mat in obj_materials {
-            let diffuse_path = mat.diffuse_texture;
+            let diffuse_path = mat.normal_texture;
             let diffuse_texture =
-                Texture::load(device, queue, containing_folder.join(diffuse_path))?;
-
+                Texture::load(device, queue, containing_folder.join("happy.png"))?;
+            diffuse_color.push(mat.diffuse);
+            ambient_color.push(mat.ambient);
+            specular_color.push(mat.specular);
             let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout,
                 entries: &[
@@ -152,8 +235,8 @@ impl Model {
                         m.mesh.positions[i * 3 + 1],
                         m.mesh.positions[i * 3 + 2],
                     ],
-                    tex_cords: [m.mesh.texcoords[i * 2], m.mesh.texcoords[i * 2 + 1]],
-                    color: [0.0, 0.0, 0.0],
+                    tex_cords: [0., 0.],
+                    color: diffuse_color[m.mesh.material_id.unwrap()],
                     normal: [
                         m.mesh.normals[i * 3],
                         m.mesh.normals[i * 3 + 1],
