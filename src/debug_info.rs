@@ -51,8 +51,8 @@ pub struct DebugInfo {
     fps: f64,
 }
 
-static mut TIME: Duration = Duration::ZERO;
-static mut FPS_SHOW_TIME: Duration = Duration::ZERO;
+static mut TIME: Duration = Duration::from_millis(0);
+static mut FPS_SHOW_TIME: Duration = Duration::from_millis(0);
 
 impl DebugInfo {
     pub fn draw<'a>(

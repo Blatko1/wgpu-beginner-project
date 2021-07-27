@@ -1,12 +1,12 @@
 use crate::modeling::model::Model;
-use nalgebra::{Rotation3, Translation3, Vector3, Matrix3};
+use nalgebra::{Matrix3, Rotation3, Translation3, Vector3};
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct InstanceRaw {
     pub matrix: [[f32; 4]; 4],
-    pub n_matrix: [[f32; 3]; 3]
+    pub n_matrix: [[f32; 3]; 3],
 }
 
 impl InstanceRaw {
@@ -18,38 +18,38 @@ impl InstanceRaw {
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
                     offset: 0,
-                    shader_location: 4,
+                    shader_location: 7,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
                     offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
-                    shader_location: 5,
+                    shader_location: 8,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
                     offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
-                    shader_location: 6,
+                    shader_location: 9,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x4,
                     offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
-                    shader_location: 7,
+                    shader_location: 10,
                 },
                 // 3x3 Matrix for normals.
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 16]>() as wgpu::BufferAddress,
-                    shader_location: 8,
+                    shader_location: 11,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 19]>() as wgpu::BufferAddress,
-                    shader_location: 9,
+                    shader_location: 12,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 22]>() as wgpu::BufferAddress,
-                    shader_location: 10,
+                    shader_location: 13,
                 },
             ],
         }
@@ -82,7 +82,7 @@ impl Instance {
         let n_matrix = Matrix3::from(rot);
         InstanceRaw {
             matrix: (translation * rot.matrix().to_homogeneous() * radius_from_center).into(),
-            n_matrix: n_matrix.into()
+            n_matrix: n_matrix.into(),
         }
     }
 

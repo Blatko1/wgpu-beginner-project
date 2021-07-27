@@ -24,7 +24,7 @@ impl MatrixUniform {
 
         let data = Data {
             proj_view_model_matrix,
-            view_position
+            view_position,
         };
 
         let matrix_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

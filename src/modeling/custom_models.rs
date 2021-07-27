@@ -5,57 +5,81 @@ pub mod cube {
             //br
             position: [1.0, -1.0, 1.0],
             tex_cords: [1.0, 0.0],
-            color: [0.5, 0.0, 0.0],
             normal: [0.0, 0.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //tl
             position: [-1.0, 1.0, 1.0],
             tex_cords: [0.0, 0.5],
-            color: [0.0, 0.5, 0.0],
             normal: [0.0, 0.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //bl
             position: [-1.0, -1.0, 1.0],
             tex_cords: [1.0, 0.0],
-            color: [0.0, 0.0, 0.5],
             normal: [1.0, 0.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //tr
             position: [1.0, 1.0, 1.0],
             tex_cords: [0.0, 0.0],
-            color: [0.5, 0.0, 0.0],
             normal: [0.0, 1.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //br    4
             position: [1.0, -1.0, -1.0],
             tex_cords: [1.0, 0.0],
-            color: [0.0, 1.0, 0.0],
             normal: [0.0, 0.0, 1.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //tr
             position: [1.0, 1.0, -1.0],
             tex_cords: [0.0, 0.5],
-            color: [0.0, 0.0, 0.5],
             normal: [0.0, 0.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //bl
             position: [-1.0, -1.0, -1.0],
             tex_cords: [1.0, 0.0],
-            color: [0.5, 0.0, 0.0],
             normal: [0.0, 0.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
         Vertex {
             //tl
             position: [-1.0, 1.0, -1.0],
             tex_cords: [1.0, 0.5],
-            color: [0.0, 0.5, 0.0],
             normal: [0.0, 0.0, 0.0],
+            use_texture: 0.,
+            diffuse_color: [0.0, 0.0, 0.5],
+            ambient_color: [0.1, 0.1, 0.1],
+            specular_color: [0.1, 0.1, 0.1],
         },
     ];
 

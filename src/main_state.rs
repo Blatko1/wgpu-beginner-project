@@ -1,8 +1,7 @@
 use crate::debug_info::{DebugInfo, DebugInfoBuilder};
-use crate::generation::flat_terrain;
 use crate::light::Light;
 use crate::modeling::instance::{Instance, InstanceRaw, ModelRenderInfo};
-use crate::modeling::model::{DrawLight, DrawModel, Material, Model, Color};
+use crate::modeling::model::{DrawLight, DrawModel, Material, Model};
 use crate::render_pipeline_tools::new_render_pipeline;
 use crate::texture::Texture;
 use crate::uniform_matrix::MatrixUniform;
@@ -113,14 +112,13 @@ impl State {
                 &[
                     Vertex::init_buffer_layout(),
                     InstanceRaw::init_buffer_layout(),
-                    //Color::init_buffer_layout()
                 ],
             )
         };
 
         // Lightning Pipeline
         let light = Light {
-            position: [1., 30., 15.],
+            position: [1., 10., 5.],
             _padding: 0,
             color: [1., 1., 1.],
         };
@@ -156,15 +154,19 @@ impl State {
 
         // Custom model
         let cube = Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
-        let car = Model::load(&device, &queue, &texture_layout, res_dir.join("car/Car.obj")).unwrap();
+        let car = Model::load(
+            &device,
+            &queue,
+            &texture_layout,
+            res_dir.join("car/Car.obj"),
+        )
+        .unwrap();
 
-        let instances = vec![
-            Instance::new(
-                Vector3::new(0., 0., 0.),
-                Vector3::new(0., 0., 0.),
-                Vector3::new(0., 0., 0.),
-            ),
-        ];
+        let instances = vec![Instance::new(
+            Vector3::new(0., 0., 0.),
+            Vector3::new(0., 0., 0.),
+            Vector3::new(0., 0., 0.),
+        )];
         let model_info = ModelRenderInfo::new("Model Instance Buffer", car, instances, &device);
 
         // Light object
@@ -267,13 +269,15 @@ impl State {
 
         drop(render_pass);
 
-        self.debug_info.draw(
-            &self.device,
-            &mut self.staging_belt,
-            &mut encoder,
-            &frame.view,
-            &self.camera,
-        ).unwrap();
+        self.debug_info
+            .draw(
+                &self.device,
+                &mut self.staging_belt,
+                &mut encoder,
+                &frame.view,
+                &self.camera,
+            )
+            .unwrap();
 
         self.staging_belt.finish();
         self.queue.submit(std::iter::once(encoder.finish()));
