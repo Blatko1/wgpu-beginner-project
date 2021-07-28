@@ -1,7 +1,10 @@
+use crate::chunk::{Chunk, DrawChunk};
 use crate::debug_info::{DebugInfo, DebugInfoBuilder};
+use crate::generation::flat_terrain;
 use crate::light::Light;
 use crate::modeling::instance::{Instance, InstanceRaw, ModelRenderInfo};
 use crate::modeling::model::{DrawLight, DrawModel, Material, Model};
+use crate::quad::QuadRaw;
 use crate::render_pipeline_tools::new_render_pipeline;
 use crate::texture::Texture;
 use crate::uniform_matrix::MatrixUniform;
@@ -24,7 +27,7 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     main_render_pipeline: wgpu::RenderPipeline,
     light_render_pipeline: wgpu::RenderPipeline,
-    model_info: ModelRenderInfo,
+    //model_info: ModelRenderInfo,
     light_info: ModelRenderInfo,
     clear: wgpu::Color,
     camera: Camera,
@@ -33,6 +36,8 @@ pub struct State {
     depth_texture: Texture,
     light_bind_group: wgpu::BindGroup,
     debug_info: DebugInfo,
+    chunk: Chunk,
+    chunk_texture: Material,
 }
 
 impl State {
@@ -109,16 +114,13 @@ impl State {
                 &frag_shader,
                 sc_desc.format,
                 texture::Texture::DEPTH_FORMAT,
-                &[
-                    Vertex::init_buffer_layout(),
-                    InstanceRaw::init_buffer_layout(),
-                ],
+                &[Vertex::init_buffer_layout(), QuadRaw::init_buffer_layout()],
             )
         };
 
         // Lightning Pipeline
         let light = Light {
-            position: [1., 10., 5.],
+            position: [-10., 27., -8.],
             _padding: 0,
             color: [1., 1., 1.],
         };
@@ -146,19 +148,18 @@ impl State {
 
         let clear = wgpu::Color {
             r: 0.1,
-            g: 0.2,
-            b: 0.3,
+            g: 0.4,
+            b: 0.5,
             a: 1.0,
         };
         let res_dir = std::path::Path::new(env!("OUT_DIR")).join("res");
 
         // Custom model
-        let cube = Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
-        let car = Model::load(
+        /*let car = Model::load(
             &device,
             &queue,
             &texture_layout,
-            res_dir.join("car/Car.obj"),
+            res_dir.join("car/mustang/mustang.obj"),
         )
         .unwrap();
 
@@ -167,7 +168,7 @@ impl State {
             Vector3::new(0., 0., 0.),
             Vector3::new(0., 0., 0.),
         )];
-        let model_info = ModelRenderInfo::new("Model Instance Buffer", car, instances, &device);
+        let model_info = ModelRenderInfo::new("Model Instance Buffer", car, instances, &device);*/
 
         // Light object
         let light =
@@ -184,6 +185,8 @@ impl State {
         let debug_info = DebugInfoBuilder::new(10., 10., 20., sc_format, (size.width, size.height))
             .build(&device)
             .unwrap();
+        let chunk = Chunk::new(&device);
+        let chunk_texture = Material::custom_material(res_dir.join("trava.png"), &device, &queue);
         State {
             surface,
             device,
@@ -196,7 +199,7 @@ impl State {
             size,
             main_render_pipeline,
             light_render_pipeline,
-            model_info,
+            //model_info,
             light_info,
             clear,
             camera,
@@ -205,6 +208,8 @@ impl State {
             depth_texture,
             light_bind_group,
             debug_info,
+            chunk,
+            chunk_texture,
         }
     }
 
@@ -216,7 +221,7 @@ impl State {
             0,
             bytemuck::cast_slice(&[self.matrix_uniform.data]),
         );
-        let instance_raw_vec = self
+        /*let instance_raw_vec = self
             .model_info
             .instances
             .iter()
@@ -226,7 +231,7 @@ impl State {
             &self.model_info.instance_buffer,
             0,
             bytemuck::cast_slice(&instance_raw_vec),
-        );
+        );*/
         /*for i in &mut self.model_info.instances {
             i.rotate(Vector3::new(0., 0., 0.005));
         }*/
@@ -264,8 +269,14 @@ impl State {
         render_pass.draw_light(&self.light_info, &self.light_bind_group);
 
         render_pass.set_pipeline(&self.main_render_pipeline);
-        render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
-        render_pass.draw_model(&self.model_info, &self.light_bind_group);
+        /*render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
+        render_pass.draw_model(&self.model_info, &self.light_bind_group);*/
+        render_pass.draw_chunk(
+            &self.chunk.chunk_mesh,
+            &self.light_bind_group,
+            &self.matrix_uniform.bind_group,
+            &self.chunk_texture.bind_group,
+        );
 
         drop(render_pass);
 

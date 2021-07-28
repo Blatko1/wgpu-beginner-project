@@ -63,7 +63,7 @@ impl DebugInfo {
         target: &wgpu::TextureView,
         camera: &Camera,
     ) -> Result<(), String> {
-        let fps = String::from(format!("FPS: {:.2}\n", self.fps));
+        let fps = String::from(format!("FPS: {:.2}\n", self.fps as u32));
         let pos = String::from(format!(
             "Position: x: {:.2}, y: {:.2}, z: {:.2}\n",
             camera.eye.x, camera.eye.y, camera.eye.z

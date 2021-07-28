@@ -68,7 +68,7 @@ impl Mesh {
         device: &wgpu::Device,
         vertices: &[Vertex],
         indices: &[u32],
-        material: usize,
+        material_id: usize,
     ) -> Self {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("{:?} Vertex Buffer", name.as_ref())),
@@ -85,7 +85,7 @@ impl Mesh {
             vertex_buffer,
             index_buffer,
             index_length,
-            material,
+            material: material_id,
         }
     }
 }
@@ -171,21 +171,18 @@ impl Model {
                         m.mesh.positions[i * 3 + 1],
                         m.mesh.positions[i * 3 + 2],
                     ],
-                    tex_cords: { if use_texture[m.mesh.material_id.unwrap()] == 1. {
-                        [m.mesh.texcoords[i * 2], m.mesh.texcoords[i * 2 + 1]]
-                    } else {
-                        [0., 0.]
-                    }},
+                    tex_cords: {
+                        if use_texture[m.mesh.material_id.unwrap()] == 1. {
+                            [m.mesh.texcoords[i * 2], m.mesh.texcoords[i * 2 + 1]]
+                        } else {
+                            [0., 0.]
+                        }
+                    },
                     normal: [
                         m.mesh.normals[i * 3],
                         m.mesh.normals[i * 3 + 1],
                         m.mesh.normals[i * 3 + 2],
                     ],
-                    // Color info:
-                    use_texture: 0.,
-                    diffuse_color: diffuse_color[m.mesh.material_id.unwrap()],
-                    ambient_color: ambient_color[m.mesh.material_id.unwrap()],
-                    specular_color: specular_color[m.mesh.material_id.unwrap()],
                 });
             }
             let tmp_mesh = Mesh::custom_mesh(

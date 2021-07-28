@@ -6,11 +6,14 @@ use winit::{
 };
 
 mod camera;
+mod chunk;
+mod cube;
 mod debug_info;
 mod generation;
 mod light;
 mod main_state;
 mod modeling;
+mod quad;
 mod render_pipeline_tools;
 mod texture;
 mod uniform_matrix;

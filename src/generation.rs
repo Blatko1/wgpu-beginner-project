@@ -2,7 +2,7 @@ use crate::modeling::model::Mesh;
 use crate::modeling::vertex_index::Vertex;
 use rand::Rng;
 
-/*#[allow(dead_code)]
+#[allow(dead_code)]
 pub fn flat_terrain(name: &str, width: u32, height: u32, device: &wgpu::Device) -> Mesh {
     let mut vertices: Vec<Vertex> = Vec::new();
     let mut indices: Vec<u32> = Vec::new();
@@ -11,13 +11,12 @@ pub fn flat_terrain(name: &str, width: u32, height: u32, device: &wgpu::Device) 
         for n in 0..width {
             let mut rng = rand::thread_rng();
             let vert = Vertex {
-                position: [n as f32, rng.gen(), m as f32],
+                position: [n as f32, rng.gen_range(0..5) as f32, m as f32],
                 tex_cords: [
                     1.0 / (width as f32) * (n as f32),
                     1.0 / (height as f32) * (m as f32),
                 ],
-                color: [0.5, 0.5, 0.5],
-                normal: [0.0, 0.0, 0.0],
+                normal: [0., 1., 0.],
             };
             vertices.push(vert);
         }
@@ -39,4 +38,4 @@ pub fn flat_terrain(name: &str, width: u32, height: u32, device: &wgpu::Device) 
     }
 
     Mesh::custom_mesh(name, device, vertices.as_slice(), indices.as_slice(), 0)
-}*/
+}
