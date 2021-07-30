@@ -31,7 +31,9 @@ impl Quad {
             QuadDirection::DOWN => (0., 1.),
             QuadDirection::UP => (1., 0.)
         };
-        let offset = [self.offset.0 + offset_x_y.0, self.offset.1 + offset_x_y.1];
+        let x_offset: f32 = 1.;
+        let y_offset: f32 = 3.;
+        let offset = [x_offset, y_offset];
         QuadRaw {
             matrix,
             n_matrix,

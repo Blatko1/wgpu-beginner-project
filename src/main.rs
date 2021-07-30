@@ -17,6 +17,7 @@ mod quad;
 mod render_pipeline_tools;
 mod texture;
 mod uniform_matrix;
+mod mipmap;
 
 use main_state::State;
 

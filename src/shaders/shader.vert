@@ -33,7 +33,7 @@ void main(void) {
     mat3 n_matrix = mat3(n_matrix1, n_matrix2, n_matrix3);
     vec4 world_position = model_matrix * vec4(pos.xyz, 1.0);
     gl_Position = proj_view_model_matrix * world_position;
-    frag_tex_cords = (tex_cords/texture_maps) + offset;
+    frag_tex_cords = tex_cords;
     v_pos = world_position.xyz;
     v_normal = n_matrix * normal;
 }

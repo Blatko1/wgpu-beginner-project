@@ -14,6 +14,7 @@ use crate::{
     texture,
 };
 use nalgebra::{Point3, Vector3};
+use crate::mipmap::generate_mipmaps;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -28,7 +29,7 @@ pub struct State {
     main_render_pipeline: wgpu::RenderPipeline,
     light_render_pipeline: wgpu::RenderPipeline,
     //model_info: ModelRenderInfo,
-    light_info: ModelRenderInfo,
+    //light_info: ModelRenderInfo,
     clear: wgpu::Color,
     camera: Camera,
     camera_controller: CameraController,
@@ -56,7 +57,7 @@ impl State {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    features: wgpu::Features::NON_FILL_POLYGON_MODE,
+                    features: wgpu::Features::NON_FILL_POLYGON_MODE | wgpu::Features::SAMPLED_TEXTURE_BINDING_ARRAY,
                     limits: wgpu::Limits::default(),
                 },
                 None,
@@ -171,7 +172,7 @@ impl State {
         let model_info = ModelRenderInfo::new("Model Instance Buffer", car, instances, &device);*/
 
         // Light object
-        let light =
+        /*let light =
             Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
 
         let light_instances = vec![Instance::new(
@@ -180,13 +181,18 @@ impl State {
             Vector3::new(0., 0., 0.),
         )];
         let light_info =
-            ModelRenderInfo::new("Model Instance Buffer", light, light_instances, &device);
+            ModelRenderInfo::new("Model Instance Buffer", light, light_instances, &device);*/
 
         let debug_info = DebugInfoBuilder::new(10., 10., 20., sc_format, (size.width, size.height))
             .build(&device)
             .unwrap();
         let chunk = Chunk::new(&device);
         let chunk_texture = Material::custom_material(res_dir.join("trava.png"), &device, &queue);
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: None
+        });
+        generate_mipmaps(&device, &mut encoder, &chunk_texture.texture.texture, 6);
+        queue.submit(Some(encoder.finish()));
         State {
             surface,
             device,
@@ -200,7 +206,7 @@ impl State {
             main_render_pipeline,
             light_render_pipeline,
             //model_info,
-            light_info,
+            //light_info,
             clear,
             camera,
             camera_controller,
@@ -264,9 +270,9 @@ impl State {
             }),
         });
 
-        render_pass.set_pipeline(&self.light_render_pipeline);
+        /*render_pass.set_pipeline(&self.light_render_pipeline);
         render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
-        render_pass.draw_light(&self.light_info, &self.light_bind_group);
+        render_pass.draw_light(&self.light_info, &self.light_bind_group);*/
 
         render_pass.set_pipeline(&self.main_render_pipeline);
         /*render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);

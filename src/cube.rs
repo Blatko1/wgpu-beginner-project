@@ -52,12 +52,12 @@ impl Cube {
 
     pub fn get_faces(&self, position: [f32; 3]) -> Vec<Quad> {
         let mut quads = Vec::new();
-        let cube_type = CUBE_TYPE_OFFSETS[self.cube_type as usize];
+        let offset = CUBE_TYPE_OFFSETS[self.cube_type as usize];
         if self.back_face {
             quads.push(Quad::new(
                 position,
                 Rotation3::new([0., 0., 0.].into()),
-                cube_type,
+                offset,
                 QuadDirection::SIDE,
             ));
         }
@@ -66,7 +66,7 @@ impl Cube {
             quads.push(Quad::new(
                 position,
                 Rotation3::from_euler_angles(0., pitch.to_radians(), 0.),
-                cube_type,
+                offset,
                 QuadDirection::SIDE,
             ))
         }
@@ -75,7 +75,7 @@ impl Cube {
             quads.push(Quad::new(
                 position,
                 Rotation3::from_euler_angles(0., pitch.to_radians(), 0.),
-                cube_type,
+                offset,
                 QuadDirection::SIDE,
             ))
         }
@@ -84,7 +84,7 @@ impl Cube {
             quads.push(Quad::new(
                 position,
                 Rotation3::from_euler_angles(0., pitch.to_radians(), 0.),
-                cube_type,
+                offset,
                 QuadDirection::SIDE,
             ))
         }
@@ -93,7 +93,7 @@ impl Cube {
             quads.push(Quad::new(
                 position,
                 Rotation3::from_euler_angles(roll.to_radians(), 0., 0.),
-                cube_type,
+                offset,
                 QuadDirection::UP,
             ))
         }
@@ -102,7 +102,7 @@ impl Cube {
             quads.push(Quad::new(
                 position,
                 Rotation3::from_euler_angles(roll.to_radians(), 0., 0.),
-                cube_type,
+                offset,
                 QuadDirection::DOWN,
             ))
         }
