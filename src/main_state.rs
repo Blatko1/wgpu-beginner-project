@@ -28,7 +28,7 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     main_render_pipeline: wgpu::RenderPipeline,
     light_render_pipeline: wgpu::RenderPipeline,
-    //light_info: ModelRenderInfo,
+    light_info: ModelRenderInfo,
     clear: wgpu::Color,
     camera: Camera,
     camera_controller: CameraController,
@@ -38,7 +38,7 @@ pub struct State {
     debug_info: DebugInfo,
     chunk: Chunk,
     texture_array: TextureArray,
-    chunk_texture: Material
+    chunk_texture: Material,
 }
 
 impl State {
@@ -58,7 +58,9 @@ impl State {
                 &wgpu::DeviceDescriptor {
                     label: None,
                     features: wgpu::Features::NON_FILL_POLYGON_MODE
-                        | wgpu::Features::SAMPLED_TEXTURE_BINDING_ARRAY,
+                        | wgpu::Features::SAMPLED_TEXTURE_BINDING_ARRAY
+                        | wgpu::Features::SAMPLED_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
+                        | wgpu::Features::UNSIZED_BINDING_ARRAY,
                     limits: wgpu::Limits::default(),
                 },
                 None,
@@ -91,7 +93,7 @@ impl State {
         let mut matrix_uniform = MatrixUniform::new(&device, &camera);
         matrix_uniform.update_uniform(&mut camera);
 
-        //let texture_layout = Texture::texture_bind_group_layout(&device);
+        let texture_layout = Texture::texture_bind_group_layout(&device);
         let light_layout = Light::bind_group_layout(&device);
 
         let depth_texture =
@@ -109,8 +111,17 @@ impl State {
             chunk_texture.texture.mip_level_count,
         );
         queue.submit(Some(encoder.finish()));*/
-        let textures = vec![&chunk_texture.texture, &chunk_texture.texture];
-        let texture_views = textures.iter().map(|t| &t.view).collect::<Vec<&wgpu::TextureView>>();
+        let tmp_tex =
+            Texture::from_bytes(&device, &queue, include_bytes!("../res/wolf.jpg"), "wolf")
+                .unwrap();
+        let tmp_tex2 =
+            Texture::from_bytes(&device, &queue, include_bytes!("../res/trava.png"), "trava")
+                .unwrap();
+        let textures = vec![&tmp_tex, &tmp_tex2];
+        let texture_views = textures
+            .iter()
+            .map(|t| &t.view)
+            .collect::<Vec<&wgpu::TextureView>>();
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -126,15 +137,20 @@ impl State {
         let main_layouts = &[
             &matrix_uniform.bind_group_layout,
             &texture_array.bind_group_layout,
-            //&texture_layout,
-            //&light_layout,
+            &light_layout,
         ];
 
         let main_render_pipeline = {
-            let vert_shader =
-                device.create_shader_module(&wgpu::include_spirv!("shaders/shader.vert.spv"));
-            let frag_shader =
-                device.create_shader_module(&wgpu::include_spirv!("shaders/shader.frag.spv"));
+            let vert_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("vertex shader"),
+                source: wgpu::util::make_spirv(include_bytes!("shaders/shader.vert.spv")),
+                flags: wgpu::ShaderFlags::all(),
+            });
+            let frag_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("fragment shader"),
+                source: wgpu::util::make_spirv(include_bytes!("shaders/shader.frag.spv")),
+                flags: wgpu::ShaderFlags::empty(),
+            });
             new_render_pipeline(
                 "main",
                 &device,
@@ -182,7 +198,7 @@ impl State {
         };
 
         // Light object
-        /*let light =
+        let light =
             Model::load(&device, &queue, &texture_layout, res_dir.join("test.obj")).unwrap();
 
         let light_instances = vec![Instance::new(
@@ -191,7 +207,7 @@ impl State {
             Vector3::new(0., 0., 0.),
         )];
         let light_info =
-            ModelRenderInfo::new("Model Instance Buffer", light, light_instances, &device);*/
+            ModelRenderInfo::new("Model Instance Buffer", light, light_instances, &device);
 
         let debug_info = DebugInfoBuilder::new(10., 10., 20., sc_format, (size.width, size.height))
             .build(&device)
@@ -208,7 +224,7 @@ impl State {
             size,
             main_render_pipeline,
             light_render_pipeline,
-            //light_info,
+            light_info,
             clear,
             camera,
             camera_controller,
@@ -218,7 +234,7 @@ impl State {
             debug_info,
             chunk,
             texture_array,
-            chunk_texture
+            chunk_texture,
         }
     }
 
@@ -260,8 +276,8 @@ impl State {
         });
 
         render_pass.set_pipeline(&self.light_render_pipeline);
-        /*render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
-        render_pass.draw_light(&self.light_info, &self.light_bind_group);*/
+        render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
+        render_pass.draw_light(&self.light_info, &self.light_bind_group);
 
         render_pass.set_pipeline(&self.main_render_pipeline);
         render_pass.set_bind_group(1, &self.texture_array.bind_group, &[]);

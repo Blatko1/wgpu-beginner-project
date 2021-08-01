@@ -24,7 +24,8 @@ use winit::event::MouseButton;
 
 fn main() {
     println!("Starting!");
-    env_logger::init();
+    wgpu_subscriber::initialize_default_subscriber(None);
+    //env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 

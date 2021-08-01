@@ -102,7 +102,7 @@ impl<'a> DrawChunk<'a> for wgpu::RenderPass<'a> {
         self.set_vertex_buffer(0, chunk_mesh.vertex_buffer.slice(..));
         self.set_vertex_buffer(1, chunk_mesh.instance_buffer.slice(..));
         self.set_bind_group(0, matrix_bind_group, &[]);
-        //self.set_bind_group(2, light_bind_group, &[]);
+        self.set_bind_group(2, light_bind_group, &[]);
         self.set_index_buffer(chunk_mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 
         self.draw_indexed(
