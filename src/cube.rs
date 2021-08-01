@@ -1,5 +1,6 @@
 use crate::quad::{Quad, QuadDirection};
 use nalgebra::Rotation3;
+use rand::Rng;
 
 const CUBE_TYPE_OFFSETS: &[(f32, f32)] = &[(1., 1.)];
 
@@ -52,7 +53,8 @@ impl Cube {
 
     pub fn get_faces(&self, position: [f32; 3]) -> Vec<Quad> {
         let mut quads = Vec::new();
-        let offset = CUBE_TYPE_OFFSETS[self.cube_type as usize];
+        let mut rng = rand::thread_rng();
+        let offset = rng.gen_range(0..2) as u32;
         if self.back_face {
             quads.push(Quad::new(
                 position,
@@ -112,8 +114,8 @@ impl Cube {
 
 #[derive(Copy, Clone)]
 pub enum CubeType {
-    GRASS,
-    DIRT = 2,
-    STONE = 3,
-    WOOD = 4,
+    GRASS = 0,
+    DIRT = 1,
+    STONE = 2,
+    WOOD = 3,
 }

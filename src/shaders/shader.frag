@@ -5,6 +5,7 @@
 layout(location = 0) in vec2 frag_tex_cords;
 layout(location = 1) in vec3 v_pos;
 layout(location = 2) in vec3 v_normal;
+layout(location = 3) flat in uint v_offset;
 
 layout(location = 0) out vec4 outColor;
 
@@ -21,7 +22,7 @@ layout(set = 2, binding = 0) uniform Light {
 float ambient_strenght = 0.05;
 
 void main(void) {
-    vec4 object_texture = texture(sampler2D(u_textures[1], u_sampler), frag_tex_cords);
+    vec4 object_texture = texture(sampler2D(u_textures[v_offset], u_sampler), frag_tex_cords);
 
     vec3 ambient_color = light_color * ambient_strenght;
 

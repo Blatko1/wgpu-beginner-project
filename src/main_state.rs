@@ -101,22 +101,32 @@ impl State {
         let res_dir = std::path::Path::new(env!("OUT_DIR")).join("res");
         let chunk = Chunk::new(&device);
         let chunk_texture = Material::custom_material(res_dir.join("trava.png"), &device, &queue);
-        /*let mut encoder =
+        let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        mipmap::generate_texture_mipmaps(
-            &device,
-            &mut encoder,
-            &queue,
-            &chunk_texture.texture.texture,
-            chunk_texture.texture.mip_level_count,
-        );
-        queue.submit(Some(encoder.finish()));*/
         let tmp_tex =
             Texture::from_bytes(&device, &queue, include_bytes!("../res/wolf.jpg"), "wolf")
                 .unwrap();
         let tmp_tex2 =
             Texture::from_bytes(&device, &queue, include_bytes!("../res/trava.png"), "trava")
                 .unwrap();
+        mipmap::generate_texture_mipmaps(
+            &device,
+            &mut encoder,
+            &queue,
+            &tmp_tex.texture,
+            tmp_tex.mip_level_count,
+        );
+        queue.submit(Some(encoder.finish()));
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        mipmap::generate_texture_mipmaps(
+            &device,
+            &mut encoder,
+            &queue,
+            &tmp_tex2.texture,
+            tmp_tex2.mip_level_count,
+        );
+        queue.submit(Some(encoder.finish()));
         let textures = vec![&tmp_tex, &tmp_tex2];
         let texture_views = textures
             .iter()

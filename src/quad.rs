@@ -4,7 +4,7 @@ use nalgebra::{Matrix3, Rotation3, Translation3};
 pub struct Quad {
     pub position: Translation3<f32>,
     pub rotation: Rotation3<f32>,
-    pub offset: (f32, f32),
+    pub offset: u32,
     pub direction: QuadDirection,
 }
 
@@ -12,7 +12,7 @@ impl Quad {
     pub fn new(
         position: [f32; 3],
         rotation: Rotation3<f32>,
-        offset: (f32, f32),
+        offset: u32,
         direction: QuadDirection,
     ) -> Self {
         Quad {
@@ -31,14 +31,11 @@ impl Quad {
             QuadDirection::DOWN => (0., 1.),
             QuadDirection::UP => (1., 0.),
         };
-        let x_offset: f32 = 1.;
-        let y_offset: f32 = 3.;
-        let offset = [x_offset, y_offset];
+        let offset = self.offset;
         QuadRaw {
             matrix,
             n_matrix,
             offset,
-            texture_rows: 2.,
         }
     }
 }
@@ -54,8 +51,7 @@ pub enum QuadDirection {
 pub struct QuadRaw {
     pub matrix: [[f32; 4]; 4],
     pub n_matrix: [[f32; 3]; 3],
-    pub offset: [f32; 2],
-    pub texture_rows: f32, // Every map must have same width and height with same amount of rows and columns.
+    pub offset: u32, // Every map must have same width and height with same amount of rows and columns.
 }
 
 impl QuadRaw {
@@ -100,14 +96,9 @@ impl QuadRaw {
                     shader_location: 9,
                 },
                 wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: std::mem::size_of::<[f32; 26]>() as wgpu::BufferAddress,
+                    format: wgpu::VertexFormat::Uint32,
+                    offset: std::mem::size_of::<[f32; 25]>() as wgpu::BufferAddress,
                     shader_location: 10,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32,
-                    offset: std::mem::size_of::<[f32; 27]>() as wgpu::BufferAddress,
-                    shader_location: 11,
                 },
             ],
         }
