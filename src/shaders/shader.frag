@@ -10,19 +10,18 @@ layout(set = 0, binding = 0) uniform matrixUniform {
     mat4 proj_view_model_matrix;
     vec3 view_pos;
 };
-layout(set = 1, binding = 0) uniform texture2D t_diffuse;
-layout(set = 1, binding = 1) uniform sampler s_diffuse;
-layout(set = 2, binding = 0) uniform Light {
+layout(set = 1, binding = 0) uniform texture2D u_textures[1024];
+layout(set = 1, binding = 1) uniform sampler u_sampler;
+/*layout(set = 2, binding = 0) uniform Light {
     vec3 light_pos;
     vec3 light_color;
-};
-
+};*/
 float ambient_strenght = 0.05;
 
 void main(void) {
-    vec4 object_texture = texture(sampler2D(t_diffuse, s_diffuse), frag_tex_cords);
+    //vec4 object_texture = texture(sampler2D(u_textures[1], u_sampler), frag_tex_cords);
 
-    vec3 ambient_color = light_color * ambient_strenght;
+    /*vec3 ambient_color = light_color * ambient_strenght;
 
     vec3 normal = normalize(v_normal);
     vec3 light_dir = normalize(light_pos - v_pos);
@@ -36,6 +35,6 @@ void main(void) {
     float diffuse_strenght = max(dot(light_dir, normal), 0.0);
     vec3 diffuse_color = light_color * diffuse_strenght;
 
-    vec3 result = (ambient_color + diffuse_color + specular_color) * object_texture.xyz;
-    outColor = vec4(result, 1.0);
+    vec3 result = (ambient_color + diffuse_color + specular_color) * object_texture.xyz;*/
+    outColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
