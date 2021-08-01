@@ -2,11 +2,12 @@ use crate::chunk::{Chunk, DrawChunk};
 use crate::debug_info::{DebugInfo, DebugInfoBuilder};
 use crate::generation::flat_terrain;
 use crate::light::Light;
+use crate::mipmap;
 use crate::modeling::instance::{Instance, InstanceRaw, ModelRenderInfo};
 use crate::modeling::model::{DrawLight, DrawModel, Material, Model};
 use crate::quad::QuadRaw;
 use crate::render_pipeline_tools::new_render_pipeline;
-use crate::texture::Texture;
+use crate::texture::{Texture, TextureArray};
 use crate::uniform_matrix::MatrixUniform;
 use crate::{
     camera::{Camera, CameraController},
@@ -14,7 +15,6 @@ use crate::{
     texture,
 };
 use nalgebra::{Point3, Vector3};
-use crate::mipmap::generate_mipmaps;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -28,7 +28,6 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     main_render_pipeline: wgpu::RenderPipeline,
     light_render_pipeline: wgpu::RenderPipeline,
-    //model_info: ModelRenderInfo,
     //light_info: ModelRenderInfo,
     clear: wgpu::Color,
     camera: Camera,
@@ -38,7 +37,8 @@ pub struct State {
     light_bind_group: wgpu::BindGroup,
     debug_info: DebugInfo,
     chunk: Chunk,
-    chunk_texture: Material,
+    texture_array: TextureArray,
+    chunk_texture: Material
 }
 
 impl State {
@@ -57,7 +57,8 @@ impl State {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    features: wgpu::Features::NON_FILL_POLYGON_MODE | wgpu::Features::SAMPLED_TEXTURE_BINDING_ARRAY,
+                    features: wgpu::Features::NON_FILL_POLYGON_MODE
+                        | wgpu::Features::SAMPLED_TEXTURE_BINDING_ARRAY,
                     limits: wgpu::Limits::default(),
                 },
                 None,
@@ -90,18 +91,45 @@ impl State {
         let mut matrix_uniform = MatrixUniform::new(&device, &camera);
         matrix_uniform.update_uniform(&mut camera);
 
-        let texture_layout = Texture::texture_bind_group_layout(&device);
+        //let texture_layout = Texture::texture_bind_group_layout(&device);
         let light_layout = Light::bind_group_layout(&device);
 
         let depth_texture =
             texture::Texture::create_depth_texture(&device, &sc_desc, "depth_texture");
+        let res_dir = std::path::Path::new(env!("OUT_DIR")).join("res");
+        let chunk = Chunk::new(&device);
+        let chunk_texture = Material::custom_material(res_dir.join("trava.png"), &device, &queue);
+        /*let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        mipmap::generate_texture_mipmaps(
+            &device,
+            &mut encoder,
+            &queue,
+            &chunk_texture.texture.texture,
+            chunk_texture.texture.mip_level_count,
+        );
+        queue.submit(Some(encoder.finish()));*/
+        let textures = vec![&chunk_texture.texture, &chunk_texture.texture];
+        let texture_views = textures.iter().map(|t| &t.view).collect::<Vec<&wgpu::TextureView>>();
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+        let texture_array = TextureArray::create(&device, texture_views, &sampler);
 
         // Main Render Pipeline
         let main_layouts = &[
             &matrix_uniform.bind_group_layout,
-            &texture_layout,
-            &light_layout,
+            &texture_array.bind_group_layout,
+            //&texture_layout,
+            //&light_layout,
         ];
+
         let main_render_pipeline = {
             let vert_shader =
                 device.create_shader_module(&wgpu::include_spirv!("shaders/shader.vert.spv"));
@@ -118,7 +146,6 @@ impl State {
                 &[Vertex::init_buffer_layout(), QuadRaw::init_buffer_layout()],
             )
         };
-
         // Lightning Pipeline
         let light = Light {
             position: [-10., 27., -8.],
@@ -153,23 +180,6 @@ impl State {
             b: 0.5,
             a: 1.0,
         };
-        let res_dir = std::path::Path::new(env!("OUT_DIR")).join("res");
-
-        // Custom model
-        /*let car = Model::load(
-            &device,
-            &queue,
-            &texture_layout,
-            res_dir.join("car/mustang/mustang.obj"),
-        )
-        .unwrap();
-
-        let instances = vec![Instance::new(
-            Vector3::new(0., 0., 0.),
-            Vector3::new(0., 0., 0.),
-            Vector3::new(0., 0., 0.),
-        )];
-        let model_info = ModelRenderInfo::new("Model Instance Buffer", car, instances, &device);*/
 
         // Light object
         /*let light =
@@ -186,13 +196,6 @@ impl State {
         let debug_info = DebugInfoBuilder::new(10., 10., 20., sc_format, (size.width, size.height))
             .build(&device)
             .unwrap();
-        let chunk = Chunk::new(&device);
-        let chunk_texture = Material::custom_material(res_dir.join("trava.png"), &device, &queue);
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: None
-        });
-        generate_mipmaps(&device, &mut encoder, &chunk_texture.texture.texture, 6);
-        queue.submit(Some(encoder.finish()));
         State {
             surface,
             device,
@@ -205,7 +208,6 @@ impl State {
             size,
             main_render_pipeline,
             light_render_pipeline,
-            //model_info,
             //light_info,
             clear,
             camera,
@@ -215,7 +217,8 @@ impl State {
             light_bind_group,
             debug_info,
             chunk,
-            chunk_texture,
+            texture_array,
+            chunk_texture
         }
     }
 
@@ -227,20 +230,6 @@ impl State {
             0,
             bytemuck::cast_slice(&[self.matrix_uniform.data]),
         );
-        /*let instance_raw_vec = self
-            .model_info
-            .instances
-            .iter()
-            .map(Instance::to_raw)
-            .collect::<Vec<_>>();
-        self.queue.write_buffer(
-            &self.model_info.instance_buffer,
-            0,
-            bytemuck::cast_slice(&instance_raw_vec),
-        );*/
-        /*for i in &mut self.model_info.instances {
-            i.rotate(Vector3::new(0., 0., 0.005));
-        }*/
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SwapChainError> {
@@ -270,18 +259,16 @@ impl State {
             }),
         });
 
-        /*render_pass.set_pipeline(&self.light_render_pipeline);
-        render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
+        render_pass.set_pipeline(&self.light_render_pipeline);
+        /*render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
         render_pass.draw_light(&self.light_info, &self.light_bind_group);*/
 
         render_pass.set_pipeline(&self.main_render_pipeline);
-        /*render_pass.set_bind_group(0, &self.matrix_uniform.bind_group, &[]);
-        render_pass.draw_model(&self.model_info, &self.light_bind_group);*/
+        render_pass.set_bind_group(1, &self.texture_array.bind_group, &[]);
         render_pass.draw_chunk(
             &self.chunk.chunk_mesh,
             &self.light_bind_group,
             &self.matrix_uniform.bind_group,
-            &self.chunk_texture.bind_group,
         );
 
         drop(render_pass);

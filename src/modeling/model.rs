@@ -116,30 +116,18 @@ impl Model {
         // We're assuming that the texture files are stored with the obj file
         let containing_folder = path.as_ref().parent().context("Directory has no parent")?;
 
-        let mut diffuse_color: Vec<[f32; 3]> = Vec::new();
-        let mut ambient_color: Vec<[f32; 3]> = Vec::new();
-        let mut specular_color: Vec<[f32; 3]> = Vec::new();
-
         let mut use_texture: Vec<f32> = Vec::new();
 
         let mut materials = Vec::new();
         for mat in obj_materials {
             let diffuse_path = mat.normal_texture;
-            println!("diff_map: {:?}", mat.diffuse_texture);
-            println!("spec_map: {:?}", mat.specular_texture);
-            println!("amb_map: {:?}", mat.ambient_texture);
-            println!("Equals: {}", mat.diffuse_texture.eq(""));
             let diffuse_texture = if mat.diffuse_texture.eq("") {
                 use_texture.push(0.);
-                diffuse_color.push(mat.diffuse);
                 Texture::load(device, queue, containing_folder.join("default.png"))?
             } else {
                 use_texture.push(1.);
-                diffuse_color.push([0., 0., 0.]);
                 Texture::load(device, queue, containing_folder.join(mat.diffuse_texture))?
             };
-            ambient_color.push(mat.ambient);
-            specular_color.push(mat.specular);
             let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout,
                 entries: &[

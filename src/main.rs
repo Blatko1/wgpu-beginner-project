@@ -12,17 +12,19 @@ mod debug_info;
 mod generation;
 mod light;
 mod main_state;
+mod mipmap;
 mod modeling;
 mod quad;
 mod render_pipeline_tools;
 mod texture;
 mod uniform_matrix;
-mod mipmap;
 
 use main_state::State;
+use winit::event::MouseButton;
 
 fn main() {
     println!("Starting!");
+    env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
@@ -30,12 +32,17 @@ fn main() {
 
     window.set_title("wgpu graphics");
     window.set_cursor_grab(true);
+    window.set_cursor_visible(false);
+
+    let mut mouse_input = true;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         match event {
             Event::DeviceEvent { event, .. } => {
-                state.input(&event);
+                if mouse_input {
+                    state.input(&event);
+                }
             }
             Event::WindowEvent { window_id, event } if window_id == window.id() => match event {
                 WindowEvent::KeyboardInput {
@@ -47,6 +54,19 @@ fn main() {
                         },
                     ..
                 } => *control_flow = ControlFlow::Exit,
+                WindowEvent::MouseInput { button, .. } => match button {
+                    MouseButton::Left => {
+                        window.set_cursor_grab(true);
+                        window.set_cursor_visible(false);
+                        mouse_input = true;
+                    }
+                    MouseButton::Right => {
+                        window.set_cursor_grab(false);
+                        window.set_cursor_visible(true);
+                        mouse_input = false;
+                    }
+                    _ => {}
+                },
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::Resized(new_size) => {
                     state.resize(new_size);

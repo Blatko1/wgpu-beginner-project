@@ -48,10 +48,7 @@ pub fn new_render_pipeline(
             entry_point: "main",
             targets: &[wgpu::ColorTargetState {
                 format: color_format,
-                blend: Some(wgpu::BlendState {
-                    color: wgpu::BlendComponent::REPLACE,
-                    alpha: wgpu::BlendComponent::REPLACE,
-                }),
+                blend: Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrite::ALL,
             }],
         }),

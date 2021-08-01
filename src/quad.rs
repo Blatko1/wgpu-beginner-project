@@ -5,7 +5,7 @@ pub struct Quad {
     pub position: Translation3<f32>,
     pub rotation: Rotation3<f32>,
     pub offset: (f32, f32),
-    pub direction: QuadDirection
+    pub direction: QuadDirection,
 }
 
 impl Quad {
@@ -19,7 +19,7 @@ impl Quad {
             position: Translation3::new(position[0], position[1], position[2]),
             rotation,
             offset,
-            direction
+            direction,
         }
     }
     pub fn to_raw(&self) -> QuadRaw {
@@ -29,7 +29,7 @@ impl Quad {
         let offset_x_y = match self.direction {
             QuadDirection::SIDE => (0., 0.),
             QuadDirection::DOWN => (0., 1.),
-            QuadDirection::UP => (1., 0.)
+            QuadDirection::UP => (1., 0.),
         };
         let x_offset: f32 = 1.;
         let y_offset: f32 = 3.;
@@ -38,7 +38,7 @@ impl Quad {
             matrix,
             n_matrix,
             offset,
-            texture_rows: 2.
+            texture_rows: 2.,
         }
     }
 }
@@ -46,7 +46,7 @@ impl Quad {
 pub enum QuadDirection {
     UP = 2,
     DOWN = 1,
-    SIDE = 0
+    SIDE = 0,
 }
 
 #[repr(C)]
@@ -55,7 +55,7 @@ pub struct QuadRaw {
     pub matrix: [[f32; 4]; 4],
     pub n_matrix: [[f32; 3]; 3],
     pub offset: [f32; 2],
-    pub texture_rows: f32,          // Every map must have same width and height with same amount of rows and columns.
+    pub texture_rows: f32, // Every map must have same width and height with same amount of rows and columns.
 }
 
 impl QuadRaw {

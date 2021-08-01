@@ -8,6 +8,7 @@ pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
+    pub mip_level_count: u32,
 }
 
 impl Texture {
@@ -24,7 +25,6 @@ impl Texture {
 
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
-    #[allow(dead_code)]
     pub fn create_depth_texture(
         device: &wgpu::Device,
         sc_desc: &wgpu::SwapChainDescriptor,
@@ -64,10 +64,10 @@ impl Texture {
             texture,
             view,
             sampler,
+            mip_level_count: 1,
         }
     }
 
-    #[allow(dead_code)]
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -82,14 +82,17 @@ impl Texture {
             height: dimensions.1,
             depth_or_array_layers: 1,
         };
+        let mip_level_count = 1 + ((dimensions.0.max(dimensions.1) as f32).log2().floor() as u32);
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label,
             size,
-            mip_level_count: 6,
+            mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsage::SAMPLED
+                | wgpu::TextureUsage::COPY_DST
+                | wgpu::TextureUsage::RENDER_ATTACHMENT,
         });
         queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -121,6 +124,7 @@ impl Texture {
             texture,
             view,
             sampler,
+            mip_level_count,
         })
     }
 
@@ -163,5 +167,61 @@ impl Texture {
             ],
             label: Some("texture_bind_group_layout"),
         })
+    }
+}
+
+pub struct TextureArray {
+    pub bind_group: wgpu::BindGroup,
+    pub bind_group_layout: wgpu::BindGroupLayout,
+}
+
+impl TextureArray {
+    pub fn create(
+        device: &wgpu::Device,
+        textures: Vec<&wgpu::TextureView>,
+        sampler: &wgpu::Sampler,
+    ) -> Self {
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Bind group texture array layout."),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: Some(NonZeroU32::new(textures.len() as u32).unwrap()),
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler {
+                        filtering: true,
+                        comparison: false,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Texture array bind group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureViewArray(textures.as_slice()),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        });
+        Self {
+            bind_group,
+            bind_group_layout,
+        }
     }
 }
