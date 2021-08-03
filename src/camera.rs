@@ -21,6 +21,7 @@ pub struct Camera {
     angle: f32,
     radius: Vector3<f32>,
     translation: Vector3<f32>,
+    camera_controller: CameraController,
 }
 
 impl Camera {
@@ -42,6 +43,7 @@ impl Camera {
             angle: 0.0,
             radius: Vector3::new(0., 0., 0.),
             translation: Vector3::new(0., 0., 0.),
+            camera_controller: CameraController::new(),
         }
     }
 

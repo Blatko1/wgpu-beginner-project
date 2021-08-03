@@ -7,6 +7,7 @@ use wgpu::util::DeviceExt;
 pub struct InstanceRaw {
     pub matrix: [[f32; 4]; 4],
     pub n_matrix: [[f32; 3]; 3],
+    pub texture_offset: u32,
 }
 
 impl InstanceRaw {
@@ -50,6 +51,12 @@ impl InstanceRaw {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 22]>() as wgpu::BufferAddress,
                     shader_location: 9,
+                },
+                // Texture offset.
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: std::mem::size_of::<[f32; 25]>() as wgpu::BufferAddress,
+                    shader_location: 10,
                 },
             ],
         }

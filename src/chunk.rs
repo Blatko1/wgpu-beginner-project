@@ -3,6 +3,7 @@ use crate::modeling::custom_models::quad;
 use crate::modeling::vertex_index::Vertex;
 use crate::quad::Quad;
 use wgpu::util::DeviceExt;
+use crate::rendering::graphics::Graphics;
 
 pub struct Chunk {
     voxels: [Cube; 16 * 16 * 16],
@@ -16,13 +17,13 @@ const CHUNK_HEIGHT: usize = 16;
 const CHUNK_SIZE: usize = CHUNK_WIDTH * CHUNK_LENGTH * CHUNK_HEIGHT;
 
 impl Chunk {
-    pub fn new(device: &wgpu::Device) -> Chunk {
+    pub fn new(graphics: &Graphics) -> Chunk {
         let default = Cube::default();
         let mut voxels: [Cube; CHUNK_SIZE] = [default; CHUNK_SIZE];
 
         let faces = Chunk::filter_unseen_quads(&mut voxels);
 
-        let chunk_mesh = ChunkMesh::new(device, quad::VERTICES, quad::INDICES, faces);
+        let chunk_mesh = ChunkMesh::new(&graphics, quad::VERTICES, quad::INDICES, faces);
 
         Chunk { voxels, chunk_mesh }
     }
@@ -123,23 +124,23 @@ pub struct ChunkMesh {
 
 impl ChunkMesh {
     pub fn new(
-        device: &wgpu::Device,
+        graphics: &Graphics,
         vertices: &[Vertex],
         indices: &[u32],
         instances: Vec<Quad>,
     ) -> Self {
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let vertex_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(vertices),
             usage: wgpu::BufferUsage::VERTEX,
         });
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let index_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(indices),
             usage: wgpu::BufferUsage::INDEX,
         });
         let instance_data = instances.iter().map(Quad::to_raw).collect::<Vec<_>>();
-        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let instance_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&instance_data),
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,

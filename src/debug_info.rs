@@ -1,4 +1,5 @@
 use crate::camera::Camera;
+use futures::task::SpawnExt;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use wgpu_glyph::{ab_glyph, GlyphBrushBuilder, Section, Text};
 
@@ -30,6 +31,10 @@ impl DebugInfoBuilder {
             ab_glyph::FontArc::try_from_slice(include_bytes!("fonts/Inconsolata-Regular.ttf"))?;
         let brush = GlyphBrushBuilder::using_font(font).build(device, self.render_format);
 
+        let staging_belt = wgpu::util::StagingBelt::new(1024);
+        let local_pool = futures::executor::LocalPool::new();
+        let local_spawner = local_pool.spawner();
+
         let info = DebugInfo {
             position: self.position,
             scale: self.scale,
@@ -37,6 +42,9 @@ impl DebugInfoBuilder {
             brush,
             text: vec![DebugTools::FPS, DebugTools::Position],
             fps: 0.,
+            staging_belt,
+            local_pool,
+            local_spawner,
         };
         Ok(info)
     }
@@ -49,6 +57,9 @@ pub struct DebugInfo {
     brush: wgpu_glyph::GlyphBrush<()>,
     text: Vec<DebugTools>,
     fps: f64,
+    staging_belt: wgpu::util::StagingBelt,
+    local_pool: futures::executor::LocalPool,
+    local_spawner: futures::executor::LocalSpawner,
 }
 
 static mut TIME: Duration = Duration::from_millis(0);
@@ -58,7 +69,6 @@ impl DebugInfo {
     pub fn draw<'a>(
         &mut self,
         device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         camera: &Camera,
@@ -95,7 +105,7 @@ impl DebugInfo {
         });
         self.brush.draw_queued(
             device,
-            staging_belt,
+            &mut self.staging_belt,
             encoder,
             target,
             self.screen_bounds.0,
@@ -103,7 +113,16 @@ impl DebugInfo {
         )
     }
 
+    pub fn finish(&mut self) {
+        self.staging_belt.finish();
+    }
+
     pub unsafe fn update_info(&mut self) {
+        // Recall unused staging buffers
+        self.local_spawner
+            .spawn(self.staging_belt.recall())
+            .expect("Recall staging belt");
+        self.local_pool.run_until_stalled();
         let now = SystemTime::now();
         let time = now
             .duration_since(UNIX_EPOCH)

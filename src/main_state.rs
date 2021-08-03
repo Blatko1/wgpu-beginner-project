@@ -1,5 +1,6 @@
 use crate::chunk::{Chunk, DrawChunk};
 use crate::debug_info::{DebugInfo, DebugInfoBuilder};
+use crate::engine::Engine;
 use crate::generation::flat_terrain;
 use crate::light::Light;
 use crate::mipmap;
@@ -16,32 +17,29 @@ use crate::{
 };
 use nalgebra::{Point3, Vector3};
 
-pub struct State {
-    surface: wgpu::Surface,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    staging_belt: wgpu::util::StagingBelt,
-    local_pool: futures::executor::LocalPool,
-    local_spawner: futures::executor::LocalSpawner,
-    sc_desc: wgpu::SwapChainDescriptor,
-    swap_chain: wgpu::SwapChain,
-    pub size: winit::dpi::PhysicalSize<u32>,
-    main_render_pipeline: wgpu::RenderPipeline,
-    light_render_pipeline: wgpu::RenderPipeline,
-    light_info: ModelRenderInfo,
-    clear: wgpu::Color,
-    camera: Camera,
-    camera_controller: CameraController,
-    matrix_uniform: MatrixUniform,
-    depth_texture: Texture,
-    light_bind_group: wgpu::BindGroup,
-    debug_info: DebugInfo,
-    chunk: Chunk,
-    texture_array: TextureArray,
-    chunk_texture: Material,
+pub struct Program {
+    surface: wgpu::Surface,                      // Window
+    device: wgpu::Device,                        // Graphics
+    queue: wgpu::Queue,                          // Graphics
+    sc_desc: wgpu::SwapChainDescriptor,          // Graphics
+    swap_chain: wgpu::SwapChain,                 // Graphics
+    pub size: winit::dpi::PhysicalSize<u32>,     // Window
+    main_render_pipeline: wgpu::RenderPipeline,  // Rendering
+    light_render_pipeline: wgpu::RenderPipeline, // Rendering
+    light_info: ModelRenderInfo,                 // Rendering
+    clear: wgpu::Color,                          // Rendering
+    camera: Camera,                              // Rendering
+    camera_controller: CameraController,         // Camera
+    matrix_uniform: MatrixUniform,               // Rendering->Shader
+    depth_texture: Texture,                      // Texture
+    light_bind_group: wgpu::BindGroup,           // Shader->Shader
+    debug_info: DebugInfo,                       // Debug menu
+    chunk: Chunk,                                // Chunk
+    texture_array: TextureArray,                 // Texture
+    chunk_texture: Material,                     // Chunk
 }
 
-impl State {
+impl Program {
     pub async fn new(window: &winit::window::Window) -> Self {
         let size = window.inner_size();
         let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
@@ -68,10 +66,6 @@ impl State {
             .await
             .unwrap();
 
-        let staging_belt = wgpu::util::StagingBelt::new(1024);
-        let local_pool = futures::executor::LocalPool::new();
-        let local_spawner = local_pool.spawner();
-
         let sc_format = adapter.get_swap_chain_preferred_format(&surface).unwrap();
 
         let sc_desc = wgpu::SwapChainDescriptor {
@@ -82,6 +76,8 @@ impl State {
             present_mode: wgpu::PresentMode::Fifo,
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+
+        let engine = Engine::new();
         let mut camera = Camera::new(
             Point3::new(0., 0., 3.),
             Point3::new(0., 0., 1.),
@@ -154,7 +150,7 @@ impl State {
             let vert_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
                 label: Some("vertex shader"),
                 source: wgpu::util::make_spirv(include_bytes!("shaders/shader.vert.spv")),
-                flags: wgpu::ShaderFlags::all(),
+                flags: wgpu::ShaderFlags::all() | wgpu::ShaderFlags::all(),
             });
             let frag_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
                 label: Some("fragment shader"),
@@ -226,9 +222,6 @@ impl State {
             surface,
             device,
             queue,
-            staging_belt,
-            local_pool,
-            local_spawner,
             sc_desc,
             swap_chain,
             size,
@@ -300,26 +293,10 @@ impl State {
         drop(render_pass);
 
         self.debug_info
-            .draw(
-                &self.device,
-                &mut self.staging_belt,
-                &mut encoder,
-                &frame.view,
-                &self.camera,
-            )
+            .draw(&self.device, &mut encoder, &frame.view, &self.camera)
             .unwrap();
-
-        self.staging_belt.finish();
-        self.queue.submit(std::iter::once(encoder.finish()));
-
-        // Recall unused staging buffers
-        use futures::task::SpawnExt;
-
-        self.local_spawner
-            .spawn(self.staging_belt.recall())
-            .expect("Recall staging belt");
-
-        self.local_pool.run_until_stalled();
+        self.debug_info.finish();
+        self.queue.submit(Some(encoder.finish()));
 
         unsafe {
             self.debug_info.update_info();
